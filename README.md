@@ -23,4 +23,4 @@ For Zero Export system, more specifically this document assumes energy meters ar
 2. [Correct Cabling for Modbus RS-485](http://electrical-engineering-portal.com/correct-cabling-modbus-rs485)
 
 ### Important Javascript Concepts
-Since Javascript executes functions asynchronously, it is possible, indeed very likely modbus data packets will collide between two requests. Therefore, always **USE DELAY.** To block the thread i.e. to block the execution of next line, ideal approach would be usage of `Promises`. In addition, `async/await` can be used to make the code scalable. 
+Since Javascript executes functions asynchronously, it is possible, indeed very likely modbus data packets will collide between two requests. Therefore, always **USE DELAY.** To block the thread i.e. to block the execution of next line, ideal approach would be usage of `Promise`. In addition, `async/await` can be used to make the code scalable. 
