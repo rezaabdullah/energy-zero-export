@@ -28,7 +28,7 @@
 //
 //**********************************************************************
 
-const ModbusRTU = require("modbus-serial");
+// const ModbusRTU = require("modbus-serial");
 const firebase = require("firebase");
 
 //**********************************************************************
@@ -49,14 +49,14 @@ const databaseHandler = require("./dataManagement.js");
 //
 //**********************************************************************
 
-var energyMeter = new ModbusRTU();
-energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error, success) {
-	if (error) {
-		console.log("Serial Port initialization unsuccessful");
-	} else {
-		console.log("Serial port initialization successful");
-	}
-});
+// var energyMeter = new ModbusRTU();
+// energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error, success) {
+// 	if (error) {
+// 		console.log("Serial Port initialization unsuccessful");
+// 	} else {
+// 		console.log("Serial port initialization successful");
+// 	}
+// });
 
 //**********************************************************************
 //
@@ -65,14 +65,14 @@ energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error,
 //
 //**********************************************************************
 
-var smartlogger = new ModbusRTU();
-smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
-	if (error) {
-		console.log("TCP/IP port initialization unsuccessful");
-	} else {
-		console.log("TCP/IP port initialization successful");
-	}
-});
+// var smartlogger = new ModbusRTU();
+// smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
+// 	if (error) {
+// 		console.log("TCP/IP port initialization unsuccessful");
+// 	} else {
+// 		console.log("TCP/IP port initialization successful");
+// 	}
+// });
 
 //**********************************************************************
 //
@@ -80,17 +80,17 @@ smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
 // REALTIME DATABASE
 //
 //**********************************************************************
-/*
-var config = {
-	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
-    authDomain: "source-57d08.firebaseapp.com",
-    databaseURL: "https://source-57d08.firebaseio.com",
-    projectId: "source-57d08",
-    storageBucket: "source-57d08.appspot.com",
-};
-firebase.initializeApp(config);
-var projectDatabase = firebase.database();
-*/
+
+// var config = {
+// 	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
+//     authDomain: "source-57d08.firebaseapp.com",
+//     databaseURL: "https://source-57d08.firebaseio.com",
+//     projectId: "source-57d08",
+//     storageBucket: "source-57d08.appspot.com",
+// };
+// firebase.initializeApp(config);
+// var projectDatabase = firebase.database();
+
 var config = {
 	apiKey: "AIzaSyB-6YYD6W9-yN-E4wvFNpxtEL6IHX9nVuQ",
 	authDomain: "prototype-test-development.firebaseapp.com",
@@ -102,7 +102,12 @@ var config = {
 firebase.initializeApp(config);
 var projectDatabase = firebase.database();
 
-// Check internet connection
+//**********************************************************************
+//
+// CHECK INTERNET CONNECTION
+//
+//**********************************************************************
+
 var connectionStatus = null;
 const connectedRef = firebase.database().ref(".info/connected");
 connectedRef.on("value", function(snap) {
@@ -121,23 +126,6 @@ baselineControlRef.once('value').then(function(snapshot) {
 }).catch(error => {
 	console.log(error);
 });
-
-//**********************************************************************
-//
-// CHECK INTERNET CONNECTION
-//
-//**********************************************************************
-/*
-const connectedRef = firebase.database().ref(".info/connected");
-connectedRef.on("value", function(snap) {
-    if (snap.val() === true) {
-        connectState = snap.val();
-    } else {
-        connectState = false;
-        console.log(typeof connectState);
-    }
-});
-*/ 
 
 //**********************************************************************
 //

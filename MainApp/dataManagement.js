@@ -23,6 +23,22 @@ var counter = 1;
 
 var localDatabase = new Object;
 
+//**********************************************************************
+//
+// STORE MAXIMUM VALUE OF SOLAR PARAMETERS
+// 
+//**********************************************************************
+
+var dailyMaxSolarData = new Object;
+
+//**********************************************************************
+//
+// STORE TEMPORARY VALUE FOR COMPARISON
+// 
+//**********************************************************************
+
+var temproryValue = [];
+
 const manageData = (parentDatabase, connectionStatus, baselineControl, meterData, solarData) => {
 	// Check internet connection
 	if (connectionStatus === true) {
@@ -31,26 +47,30 @@ const manageData = (parentDatabase, connectionStatus, baselineControl, meterData
 			counter = 0;
 			let meterLogPath = "/PowerMeter/ThongGuanLot48/Baseline/";
 			pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
-		} else if ((counter >= 9) && (baselineControl === false)) {
+		} else if ((counter >= 10) && (baselineControl === false)) {
 			counter = 0;
 			let meterLogPath = "/PowerMeter/ThongGuanLot48/Actual/";
 			let solarLogPath = "/SolarSystem/ThongGuanLot48/Datalog/";
 			pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
 			pushSolarData(parentDatabase, connectionStatus, solarLogPath, solarData);
 		} else {
-			console.log(`Countdown to push data ${9 - counter}`);
+			console.log(`Countdown to push data ${10 - counter}`);
 		}
 		
 		// Set current status for power meter
 		meterCurrentStatus(parentDatabase, meterData);
-		solarCurrentStatus(parentDatabase, SolarData);
+		solarCurrentStatus(parentDatabase, solarData);
+		
+		// Compare data for Max. Value
+		let temproryValue
+		let dailyMaxAmbientTemp = solarData.SmartLogger.ambientTemp;
+		//if (solar
 		
 		// Increment counter by 1		
 		counter++;
 	} else {
 		console.log("Pi Offline");
 	}
-	
 }
 
 //**********************************************************************
@@ -137,7 +157,7 @@ const meterCurrentStatus = (parentDatabase, meterData) => {
 //
 //**********************************************************************
 
-const solarCurrentStatus = (parentDatabase, SolarData) => {
+const solarCurrentStatus = (parentDatabase, solarData) => {
 	for (const key of Object.keys(solarData)) {
 		if (key.indexOf("inverter") >= 0) {
 			let currentStatusRef = parentDatabase.ref("/SolarSystem/ThongGuanLot48/CurrentStatus/Inverter/" + key);
