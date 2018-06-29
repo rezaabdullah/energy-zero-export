@@ -15,7 +15,7 @@
 //
 //**********************************************************************
 
-const ModbusRTU = require('modbus-serial');
+// const ModbusRTU = require('modbus-serial');
 
 //**********************************************************************
 //
@@ -23,7 +23,7 @@ const ModbusRTU = require('modbus-serial');
 //
 //**********************************************************************
 
-var energyMeterSerial = new ModbusRTU();// Modbus client: Energy Meter
+// var energyMeter = new ModbusRTU();// Modbus client: Energy Meter
 
 //**********************************************************************
 //
@@ -32,22 +32,22 @@ var energyMeterSerial = new ModbusRTU();// Modbus client: Energy Meter
 //**********************************************************************
 
 // Energy meter object prototype
-const EnergyMeter = {
-	i1: null,							// Phase 1 current
-	i2: null,							// Phase 2 current
-	i3: null,							// Phase 3 current
-	v12: null,							// Phase 1-2 voltage
-	v23: null,							// Phase 2-3 voltage
-	v31: null,							// Phase 3-1 voltage
-	v1: null,							// Phase 1-N voltage
-	v2: null,							// Phase 2-N voltage
-	v3: null,							// Phase 3-N voltage
-	totalActivePower: null,				// Total active power
-	activePower1: null,					// Phase 1 active power
-	activePower2: null,					// Phase 2 active power
-	activePower3: null,					// Phase 3 active power
-	activeEnergy: null					// Total active energy
-}
+// const EnergyMeter = {
+// 	i1: null,							// Phase 1 current
+// 	i2: null,							// Phase 2 current
+// 	i3: null,							// Phase 3 current
+// 	v12: null,							// Phase 1-2 voltage
+// 	v23: null,							// Phase 2-3 voltage
+// 	v31: null,							// Phase 3-1 voltage
+// 	v1: null,							// Phase 1-N voltage
+// 	v2: null,							// Phase 2-N voltage
+// 	v3: null,							// Phase 3-N voltage
+// 	totalActivePower: null,				// Total active power
+// 	activePower1: null,					// Phase 1 active power
+// 	activePower2: null,					// Phase 2 active power
+// 	activePower3: null,					// Phase 3 active power
+// 	activeEnergy: null					// Total active energy
+// }
 
 //**********************************************************************
 //
@@ -55,7 +55,7 @@ const EnergyMeter = {
 //
 //**********************************************************************
 
-var energyMeterArray = [];
+var EnergyParameters = new Object;
 
 //**********************************************************************
 //
@@ -63,7 +63,7 @@ var energyMeterArray = [];
 //
 //**********************************************************************
 
-const activePowerRegister_R = 4012;		// Active power register
+const holdingRegister_R = 768;		// Active power register
 
 //**********************************************************************
 //
@@ -71,13 +71,12 @@ const activePowerRegister_R = 4012;		// Active power register
 //
 //**********************************************************************
 
-const getMeters = async (totalMeters) => {
+const getEnergyParameters = async (totalMeters) => {
+	console.log('Inside getMeters', totalMeters);
 	try {
-		await energyMeterSerial.connectRTUBuffered('/dev/ttyAMA0', {baudRate: 9600});
 		for (let meterNumber = 1; meterNumber <= totalMeters; meterNumber++) {
 			await getEachMeter(meterNumber);
 		}
-		await energyMeterSerial.close();
 	} catch (error) {
 		console.log(error.message);
 	} finally {
@@ -93,29 +92,40 @@ const getMeters = async (totalMeters) => {
 //**********************************************************************
 
 const getEachMeter = async (meterID) => {
-	let index = meterID - 1;
 	try {
 		await energyMeterSerial.setID(meterID);
 		await energyMeterSerial.setTimeout(1000);
-		energyMeterArray[index] = Object.create(EnergyMeter);
-		let energyParameters = await energyMeterSerial.readHoldingRegisters(firstHoldingRegister_R, totalHoldingRegister_R);
+		let meterId = "meter" + meterID;
+		let energyParameters = await energyMeterSerial.readHoldingRegisters(holdingRegister_R, 10);
 		// Current
-		energyMeterArray[index].i1 = energyParameters.buffer.readUInt32BE(0)/1000;
-		energyMeterArray[index].i2 = energyParameters.buffer.readUInt32BE(4)/1000;
-		energyMeterArray[index].i3 = energyParameters.buffer.readUInt32BE(8)/1000;
+		let i1 = energyParameters.buffer.readUInt32BE(0)/1000;
+		let i2 = energyParameters.buffer.readUInt32BE(4)/1000;
+		let i3 = energyParameters.buffer.readUInt32BE(8)/1000;
 		// Voltage
-		energyMeterArray[index].v12 = energyParameters.buffer.readUInt32BE(16)/100;
-		energyMeterArray[index].v23 = energyParameters.buffer.readUInt32BE(20)/100;
-		energyMeterArray[index].v31 = energyParameters.buffer.readUInt32BE(24)/100;
-		energyMeterArray[index].v1 = energyParameters.buffer.readUInt32BE(28)/100;
-		energyMeterArray[index].v2 = energyParameters.buffer.readUInt32BE(32)/100;
-		energyMeterArray[index].v3 = energyParameters.buffer.readUInt32BE(36)/100;
-		// Power and Energy
-		energyMeterArray[index].totalActivePower = energyParameters.buffer.readUInt32BE(44)/100;
-		energyMeterArray[index].activePower1 = energyParameters.buffer.readUInt32BE(60)/100;
-		energyMeterArray[index].activePower2 = energyParameters.buffer.readUInt32BE(64)/100;
-		energyMeterArray[index].activePower3 = energyParameters.buffer.readUInt32BE(68)/100;
-		energyMeterArray[index].activeEnergy = energyParameters.buffer.readUInt32BE(176);
+		let v12 = energyParameters.buffer.readUInt32BE(16)/100;
+		let v23 = energyParameters.buffer.readUInt32BE(20)/100;
+		let v31 = energyParameters.buffer.readUInt32BE(24)/100;
+		let v1 = energyParameters.buffer.readUInt32BE(28)/100;
+		// let v2 = energyParameters.buffer.readUInt32BE(32)/100;
+		// let v3 = energyParameters.buffer.readUInt32BE(36)/100;
+		// // Power and Energy
+		// let totalActivePower = energyParameters.buffer.readUInt32BE(44)/100;
+		// let activePower1 = energyParameters.buffer.readUInt32BE(60)/100;
+		// let activePower2 = energyParameters.buffer.readUInt32BE(64)/100;
+		// let activePower3 = energyParameters.buffer.readUInt32BE(68)/100;
+		// let activeEnergy = energyParameters.buffer.readUInt32BE(176);
+
+		let meterObject = {
+			i1: i1,
+			i2: i2,
+			i3: i3,
+			v12: v12,
+			v23: v23,
+			v31: v31,
+			v1: v1
+		}
+
+		energyParameters[meterId] = meterObject;
 	} catch (error) {
 		energyMeterArray[index] = Object.create(EnergyMeter);
 		energyMeterArray[index].error = error.message;
@@ -128,4 +138,4 @@ const getEachMeter = async (meterID) => {
 //
 //**********************************************************************
 
-module.exports.getMeters = getMeters;
+module.exports.getEnergyParameters = getEnergyParameters;
