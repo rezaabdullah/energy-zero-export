@@ -11,13 +11,14 @@
 //
 // MODULES
 //
-// 1. Initial Configuration - In the Pipeline (Consult w/ Alvin)
-// 2. Energy Parameters Query - COMPLETE (REZA)
-// 3. Smartlogger Parameters Query - COMPLETE (REZA)
-// 4. CONTROLLING MODBUS DEVICES - COMPLETE (REZA)
-// 5. DATABASE - COMPLETE (REZA)
-// 6. OFFLINE DATA MANAGEMENT - COMPLETE (REZA)
-// 7. AUTO STARTUP NODE SCRIPT - COMPLETE (REZA)
+// 1. Energy Parameters Query - COMPLETE (REZA)
+// 2. Smartlogger Parameters Query - COMPLETE (REZA)
+// 3. CONTROLLING MODBUS DEVICES - COMPLETE (REZA)
+// 4. DATABASE - COMPLETE (REZA)
+// 5. OFFLINE DATA MANAGEMENT - COMPLETE (REZA)
+// 6. AUTO STARTUP NODE SCRIPT - COMPLETE (REZA)
+//
+// Just wishful thinking - what if we could initiate through Firebase & GUI/HMI
 //
 //**********************************************************************
 
@@ -27,8 +28,8 @@
 //
 //**********************************************************************
 
-const ModbusRTU = require('modbus-serial');
-const firebase = require('firebase');
+const ModbusRTU = require("modbus-serial");
+const firebase = require("firebase");
 
 //**********************************************************************
 //
@@ -36,8 +37,10 @@ const firebase = require('firebase');
 //
 //**********************************************************************
 
-const getMeters = require('./getEnergyMeter.js');
-// const pvSystem = require('./getPVSystem.js');
+const getMeters = require("./getEnergyMeter.js");
+const getSolar = require("./getPVSystem.js");
+const solarOutputControl = require("./controlPowerOutput.js");
+const databaseHandler = require("./dataManagement.js");
 
 //**********************************************************************
 //
@@ -47,11 +50,11 @@ const getMeters = require('./getEnergyMeter.js');
 //**********************************************************************
 
 var energyMeter = new ModbusRTU();
-energyMeter.connectRTUBuffered('/dev/ttyAMA0', {baudRate: 9600}, function(error, data) {
+energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error, success) {
 	if (error) {
-		console.log(`Cannot initialize serial port: ${error}`);
-	} else if (data) {
-		console.log('Serial port has been successfully initialized', data);
+		console.log("Serial Port initialization unsuccessful");
+	} else {
+		console.log("Serial port initialization successful");
 	}
 });
 
@@ -62,12 +65,12 @@ energyMeter.connectRTUBuffered('/dev/ttyAMA0', {baudRate: 9600}, function(error,
 //
 //**********************************************************************
 
-var smartLogger = new ModbusRTU();
-smartLogger.connectTCP("192.168.54.10", {port: 502}, function(error, data) {
+var smartlogger = new ModbusRTU();
+smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
 	if (error) {
-		console.log(`Cannot initialize TCP/IP port: ${error}`);
-	} else if (data) {
-		console.log('TCP/IP port has been successfully initialized', data);
+		console.log("TCP/IP port initialization unsuccessful");
+	} else {
+		console.log("TCP/IP port initialization successful");
 	}
 });
 
@@ -77,7 +80,7 @@ smartLogger.connectTCP("192.168.54.10", {port: 502}, function(error, data) {
 // REALTIME DATABASE
 //
 //**********************************************************************
-
+/*
 var config = {
 	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
     authDomain: "source-57d08.firebaseapp.com",
@@ -87,13 +90,44 @@ var config = {
 };
 firebase.initializeApp(config);
 var projectDatabase = firebase.database();
+*/
+var config = {
+	apiKey: "AIzaSyB-6YYD6W9-yN-E4wvFNpxtEL6IHX9nVuQ",
+	authDomain: "prototype-test-development.firebaseapp.com",
+	databaseURL: "https://prototype-test-development.firebaseio.com",
+	projectId: "prototype-test-development",
+	storageBucket: "prototype-test-development.appspot.com",
+	messagingSenderId: "451205828907"
+};
+firebase.initializeApp(config);
+var projectDatabase = firebase.database();
+
+// Check internet connection
+var connectionStatus = null;
+const connectedRef = firebase.database().ref(".info/connected");
+connectedRef.on("value", function(snap) {
+	if (snap.val()) {
+		connectionStatus = snap.val();
+	} else {
+		connectionStatus = false;
+	}
+});
+
+// Check baseline status
+var baselineControl = null;
+let baselineControlRef = projectDatabase.ref('/Customer/ThongGuanLot48/DatalogControl/');
+baselineControlRef.once('value').then(function(snapshot) {
+	baselineControl = snapshot.val().Baseline;
+}).catch(error => {
+	console.log(error);
+});
 
 //**********************************************************************
 //
 // CHECK INTERNET CONNECTION
 //
 //**********************************************************************
-
+/*
 const connectedRef = firebase.database().ref(".info/connected");
 connectedRef.on("value", function(snap) {
     if (snap.val() === true) {
@@ -103,6 +137,7 @@ connectedRef.on("value", function(snap) {
         console.log(typeof connectState);
     }
 });
+*/ 
 
 //**********************************************************************
 //
@@ -115,39 +150,27 @@ const numberOfInverters = 19;
 
 //**********************************************************************
 //
-// ERROR COUNTER TO HANDLE DATA PACKET LOSS
-//
-//**********************************************************************
-
-var errorCount = null;
-
-//**********************************************************************
-//
-// ENTRY POINT OF THE APP
-//
-//**********************************************************************
-
-console.log('"Dimidium facti qui coepit habet: SAPERE AUDE" - Horace');
-console.log('"He who has begun is half done: DARE TO KNOW!" - Horace');
-
-//**********************************************************************
-//
 // MAIN FUNCTION
 //
 //**********************************************************************
 
 const main = async () => {
 	try {
-		console.log('Inside main');
-		getMeters.getEnergyParameters(numberOfMeters);
-		// console.log('Get PV System');
-		// console.log('Zero export control');
-		// console.log('Push data to cloud');
+		let allMeterParameters = await getMeters.getEnergyParameters(energyMeter, numberOfMeters);
+		let weatherStationObject = await getSolar.getWeatherData(smartlogger);
+		let allInverterParameters = await getSolar.getInverters(smartlogger, numberOfInverters);
+		let allPVParameters = await getSolar.getSmartlogger(smartlogger);
+		let limitPVOutput = await solarOutputControl.adjustSolarOutput(smartlogger, allMeterParameters.Meter1.intakeTNB, allPVParameters.SmartLogger);
+		console.log(`intakeTNB: ${allMeterParameters.Meter1.intakeTNB}`);
+		console.log(`totalPVacPower: ${allPVParameters.SmartLogger.totalPVacPower}`);
+		console.log(`activeAdjustment: ${allPVParameters.SmartLogger.activeAdjustment}`);
+		console.log(`totalBuildingLoad: ${allPVParameters.SmartLogger.totalBuildingLoad}`);
+		databaseHandler.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters);
 	} catch (error) {
 		console.log(error.message);
 	} finally {
+		await delay(30000);
 		console.log('Done');
-		await delay(5000);
 		main();
 	}
 };
@@ -161,23 +184,6 @@ const main = async () => {
 const delay = microSecond => new Promise(resolve => setTimeout(resolve, microSecond));
 
 delay(30000).then(() => {
+	console.log("Start app.js")
 	main();
 });
-// main();
-
-// (() => {
-// 	// Get energy parameters
-//     meters.getMeters(numberOfMeters).then(energyParameters => {
-// 		//let energyParameters = energyMeterArray;
-// 		console.log(`energyParameters:, ${energyParameters}`);
-// 	}).catch(error => {
-// 		console.log(error.message)
-// 	});
-// 	// Get PV system parameters
-// 	pvSystem.getPVSystemParameters(numberOfInverters).then(pvSystemArray => {
-// 		//let pvSystemParameters = pvSystemArray;
-// 		console.log(`pvSystemParameters:', ${pvSystemArray}`);
-// 	}).catch(error => {
-// 		console.log(error.message);
-// 	})
-// }, 30000);
