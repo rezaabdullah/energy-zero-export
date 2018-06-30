@@ -39,8 +39,8 @@ var systemPerformanceData = {
 	dailyMaxDemand: null,		// DONE
 	dailyAvgSolarOutput: null, 	// DONE
 	dailyMaxSolarOutput: null,	// DONE
-	dailyAccBuildingLoad: null,	// DONE
-	/*dailyPerformanceRatio: null,// NEED MORE INFO
+	dailyAccBuildingLoad: null/*,	// DONE
+	dailyPerformanceRatio: null,// NEED MORE INFO
 	dailyEnergySavings: null,	// NEED MORE INFO
 	weeklyAccBuildingLoad: null,// DONE
 	monthlyAccBuildingLoad: null,//DONE
