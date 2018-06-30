@@ -29,48 +29,72 @@ var localDatabase = new Object;
 // 
 //**********************************************************************
 
-var dailyMaxSolarData = new Object;
+var systemPerformanceData = {
+	dailyMaxAmbientTemp: null,	// DONE
+	dailyMaxSolarTemp: null,	// DONE
+	dailyMaxIrradiance: null,	// DONE
+	dailyAccIrradiance: null,	// DONE
+	dailyAccYield: null,		// DONE
+	dailyMaxIntake: null,		// DONE
+	dailyMaxDemand: null,		// DONE
+	dailyAvgSolarOutput: null, 	// DONE
+	dailyMaxSolarOutput: null,	// DONE
+	dailyAccBuildingLoad: null,	// DONE
+	/*dailyPerformanceRatio: null,// NEED MORE INFO
+	dailyEnergySavings: null,	// NEED MORE INFO
+	weeklyAccBuildingLoad: null,// DONE
+	monthlyAccBuildingLoad: null,//DONE
+	monthlyMaxDemand: null,		// DONE
+	monthlyAccYield: null,		// DONE
+	monthlyAccIrradiance: null,	// DONE
+	monthlyPerformanceRatio: null,// NEED MORE INFO	
+	monthlyEnergySavings: null	// NEED MORE INFO*/
+};
 
 //**********************************************************************
 //
-// STORE TEMPORARY VALUE FOR COMPARISON
+// NUMBER OF DATA SAMPLE IN A DAY WITH A 10 MINUTE INTERVAL
 // 
 //**********************************************************************
 
-var temproryValue = [];
+const NUMBER_OF_DAILY_SAMPLE = 72;
+
+//**********************************************************************
+//
+// MAXIMUM DEMAND IN EVERY 30 MINUTE
+// 
+//**********************************************************************
+
+var maxDemand = null;
+var initialActiveEnergy = null;
 
 const manageData = (parentDatabase, connectionStatus, baselineControl, meterData, solarData) => {
-	// Check internet connection
-	if (connectionStatus === true) {
-		// Store data
-		if ((counter >= 10) && (baselineControl === true)) {
-			counter = 0;
-			let meterLogPath = "/PowerMeter/ThongGuanLot48/Baseline/";
-			pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
-		} else if ((counter >= 10) && (baselineControl === false)) {
-			counter = 0;
-			let meterLogPath = "/PowerMeter/ThongGuanLot48/Actual/";
-			let solarLogPath = "/SolarSystem/ThongGuanLot48/Datalog/";
-			pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
-			pushSolarData(parentDatabase, connectionStatus, solarLogPath, solarData);
-		} else {
-			console.log(`Countdown to push data ${10 - counter}`);
-		}
-		
-		// Set current status for power meter
-		meterCurrentStatus(parentDatabase, meterData);
-		solarCurrentStatus(parentDatabase, solarData);
-		
-		// Compare data for Max. Value
-		let temproryValue
-		let dailyMaxAmbientTemp = solarData.SmartLogger.ambientTemp;
-		//if (solar
-		
-		// Increment counter by 1		
-		counter++;
+	if ((counter >= 10) && (baselineControl === true)) {
+		counter = 0;
+		let meterLogPath = "/PowerMeter/ThongGuanLot48/Baseline/";
+		pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
+	} else if ((counter >= 10) && (baselineControl === false)) {
+		counter = 0;
+		let meterLogPath = "/PowerMeter/ThongGuanLot48/Actual/";
+		let solarLogPath = "/SolarSystem/ThongGuanLot48/Datalog/";
+		pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
+		pushSolarData(parentDatabase, connectionStatus, solarLogPath, solarData);
 	} else {
-		console.log("Pi Offline");
+		console.log(`Countdown to push data ${10 - counter}`);
 	}
+	
+	// Set current status for power meter
+	meterCurrentStatus(parentDatabase, meterData);
+	solarCurrentStatus(parentDatabase, solarData);
+	
+	// Push system performance data
+	pushSystemPerformance(parentDatabase, connectionStatus, meterData.Meter1, solarData.SmartLogger);
+	
+	// Compare data for Max. Value
+	
+	
+	// Increment counter by 1		
+	counter++;
 }
 
 //**********************************************************************
@@ -169,6 +193,123 @@ const solarCurrentStatus = (parentDatabase, solarData) => {
 			console.log("I'm lost");
 		}
 	}
+}
+
+//**********************************************************************
+//
+// PUSH SYSTEM PERFORMANCE DATA TO FIREBASE
+//
+//**********************************************************************
+
+const pushSystemPerformance = (parentDatabase, connectionStatus, meterData, smartloggerData) => {
+	if (connectionStatus === true) {
+		// 
+		let date = new Date();
+		let hours = date.getHours();
+		let days = date.getDay();
+		let month = date.getMonth();
+		if (hours === 0) {
+			let dailyDataRef = parentDatabase.ref("/SolarSystem/ThongGuanLot48/DailyStatus/");
+			dailyDataRef.push(systemPerformanceData);
+			systemPerformanceData = {
+				dailyMaxAmbientTemp: null,	// DONE
+				dailyMaxSolarTemp: null,	// DONE
+				dailyMaxIrradiance: null,	// DONE
+				dailyAccIrradiance: null,	// DONE
+				dailyAccYield: null,		// DONE
+				dailyMaxIntake: null,		// DONE
+				dailyMaxDemand: null,		// DONE
+				dailyAvgSolarOutput: null, 	// DONE
+				dailyMaxSolarOutput: null,	// DONE
+				dailyAccBuildingLoad: null/*,	// DONE
+				/*dailyPerformanceRatio: null,// NEED MORE INFO
+				dailyEnergySavings: null,	// NEED MORE INFO
+				weeklyAccBuildingLoad: null,// DONE
+				monthlyAccBuildingLoad: null,//DONE
+				monthlyMaxDemand: null,		// DONE
+				monthlyAccYield: null,		// DONE
+				monthlyAccIrradiance: null,	// DONE
+				monthlyPerformanceRatio: null,// NEED MORE INFO	
+				monthlyEnergySavings: null	// NEED MORE INFO*/
+			};
+			console.log("Push data and then clear systemPerformanceData");
+		} else {
+			console.log("Nothing to push", hours);
+		}
+		
+		// Max. ambient temperature
+		if ((systemPerformanceData.dailyMaxAmbientTemp === null) || (systemPerformanceData.dailyMaxAmbientTemp < smartloggerData.ambientTemp)) {
+			systemPerformanceData.dailyMaxAmbientTemp = smartloggerData.ambientTemp;
+		} else {
+			console.log(`Max. Ambient Temp not changed: ${systemPerformanceData.dailyMaxAmbientTemp}`);
+		}
+
+		// Max. module temperature
+		if ((systemPerformanceData.dailyMaxSolarTemp === null) || (systemPerformanceData.dailyMaxSolarTemp < smartloggerData.moduleTemp)) {
+			systemPerformanceData.dailyMaxSolarTemp = smartloggerData.moduleTemp;
+		} else {
+			console.log(`Max. Module Temp not changed: ${systemPerformanceData.dailyMaxSolarTemp}`);
+		}
+		
+		// Max. Irradiance
+		if ((systemPerformanceData.dailyMaxIrradiance === null) || (systemPerformanceData.dailyMaxIrradiance < smartloggerData.IRRsensor)) {
+			systemPerformanceData.dailyMaxIrradiance = smartloggerData.IRRsensor;
+		} else {
+			console.log(`Max. Irradiance not changed: ${systemPerformanceData.dailyMaxIrradiance}`);
+		}
+		
+		// Max. Power Intake
+		if ((systemPerformanceData.dailyMaxIntake === null) || (systemPerformanceData.dailyMaxIntake < meterData.intakeTNB)) {
+			systemPerformanceData.dailyMaxIntake = meterData.intakeTNB;
+		} else {
+			console.log(`Max. Power Intake not changed: ${systemPerformanceData.dailyMaxIntake}`);
+		}
+		
+		// Max. Solar output
+		if ((systemPerformanceData.dailyMaxSolarOutput === null) || (systemPerformanceData.dailyMaxSolarOutput < smartloggerData.totalPVacPower)) {
+			systemPerformanceData.dailyMaxSolarOutput = smartloggerData.totalPVacPower;
+		} else {
+			console.log(`Max. Solar Output not changed: ${systemPerformanceData.dailyMaxSolarOutput}`);
+		}
+		
+		// Daily accumulated Irradiance
+		systemPerformanceData.dailyAccIrradiance += smartloggerData.IRRsensor;
+		
+		// Daily accumulated yield
+		systemPerformanceData.dailyAccYield += smartloggerData.totalPVacPower;
+		
+		// Daily average yield
+		systemPerformanceData.dailyAvgSolarOutput = systemPerformanceData.dailyAccYield / NUMBER_OF_DAILY_SAMPLE;
+		
+		// Daily accumulated building load
+		systemPerformanceData.dailyAccBuildingLoad += smartloggerData.totalBuildingLoad;
+		
+		// Daily Maximum demand
+		if (((date.getMinutes() === 0) || (date.getMinutes() === 30)) && (initialActiveEnergy === null)) {
+			initialActiveEnergy = meterData.activeEnergy;
+			console.log("initialEnergy:", initialActiveEnergy);			
+		} else if (((date.getMinutes() === 29) || (date.getMinutes() === 59)) && (initialActiveEnergy != null)) {
+			maxDemand = (meterData.activeEnergy - initialActiveEnergy) / 0.5;
+			initialActiveEnergy = meterData.activeEnergy;
+			if (maxDemand > systemPerformanceData.dailyMaxDemand) {
+				systemPerformanceData.dailyMaxDemand = maxDemand;
+			} else {
+				console.log("Max Demand not changed");
+			}
+			console.log("maxDemand:", maxDemand);
+		} else {
+			console.log("Insufficient time");
+		}
+		
+		console.log(systemPerformanceData);
+	}/* else {
+		for (const key of Object.keys(meterData)) {
+			let pathRef = parentDatabase.ref(logPath + key);
+			let uniqueKey = pathRef.push();
+			localDatabase[uniqueKey.key] = meterData[key];
+			uniqueKey.set(meterData[key]);
+		}
+	}*/
 }
 
 //**********************************************************************
