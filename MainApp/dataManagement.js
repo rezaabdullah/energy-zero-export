@@ -39,8 +39,8 @@ var systemPerformanceData = {
 	dailyMaxDemand: null,		// DONE
 	dailyAvgSolarOutput: null, 	// DONE
 	dailyMaxSolarOutput: null,	// DONE
-	dailyAccBuildingLoad: null/*,	// DONE
-	dailyPerformanceRatio: null,// NEED MORE INFO
+	dailyAccBuildingLoad: null,	// DONE
+	/*dailyPerformanceRatio: null,// NEED MORE INFO
 	dailyEnergySavings: null,	// NEED MORE INFO
 	weeklyAccBuildingLoad: null,// DONE
 	monthlyAccBuildingLoad: null,//DONE
@@ -208,7 +208,7 @@ const pushSystemPerformance = (parentDatabase, connectionStatus, meterData, smar
 		let hours = date.getHours();
 		let days = date.getDay();
 		let month = date.getMonth();
-		if (hours === 0) {
+		if ((date.getHours() === 0) && (date.getMinutes() === 0)) {
 			let dailyDataRef = parentDatabase.ref("/SolarSystem/ThongGuanLot48/DailyStatus/");
 			dailyDataRef.push(systemPerformanceData);
 			systemPerformanceData = {
