@@ -40,7 +40,8 @@ const firebase = require("firebase");
 const getMeters = require("./getEnergyMeter.js");
 const getSolar = require("./getPVSystem.js");
 const solarOutputControl = require("./controlPowerOutput.js");
-const databaseHandler = require("./dataManagement.js");
+const manageDatabase = require("./manageDatabase.js");
+const 
 
 //**********************************************************************
 //
