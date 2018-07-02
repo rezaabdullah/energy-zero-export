@@ -41,7 +41,7 @@ const getMeters = require("./getEnergyMeter.js");
 const getSolar = require("./getPVSystem.js");
 const solarOutputControl = require("./controlPowerOutput.js");
 const manageDatabase = require("./manageDatabase.js");
-const 
+const postProcess = require("./processData.js");
 
 //**********************************************************************
 //
@@ -154,11 +154,11 @@ const main = async () => {
 		console.log(`totalPVacPower: ${allPVParameters.SmartLogger.totalPVacPower}`);
 		console.log(`activeAdjustment: ${allPVParameters.SmartLogger.activeAdjustment}`);
 		console.log(`totalBuildingLoad: ${allPVParameters.SmartLogger.totalBuildingLoad}`);
-		databaseHandler.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters);
+		manageDatabase.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters);
 	} catch (error) {
 		console.log(error.message);
 	} finally {
-		await delay(30000);
+		await delay(60000);
 		console.log('Done');
 		main();
 	}
