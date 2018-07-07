@@ -50,14 +50,14 @@ const performanceData = require("./processData.js");
 //
 //**********************************************************************
 
-// var energyMeter = new ModbusRTU();
-// energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error, success) {
-// 	if (error) {
-// 		console.log("Serial Port initialization unsuccessful");
-// 	} else {
-// 		console.log("Serial port initialization successful");
-// 	}
-// });
+var energyMeter = new ModbusRTU();
+energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error, success) {
+	if (error) {
+		console.log("Serial Port initialization unsuccessful");
+	} else {
+		console.log("Serial port initialization successful");
+	}
+});
 
 //**********************************************************************
 //
@@ -66,14 +66,14 @@ const performanceData = require("./processData.js");
 //
 //**********************************************************************
 
-// var smartlogger = new ModbusRTU();
-// smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
-// 	if (error) {
-// 		console.log("TCP/IP port initialization unsuccessful");
-// 	} else {
-// 		console.log("TCP/IP port initialization successful");
-// 	}
-// });
+var smartlogger = new ModbusRTU();
+smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
+	if (error) {
+		console.log("TCP/IP port initialization unsuccessful");
+	} else {
+		console.log("TCP/IP port initialization successful");
+	}
+});
 
 //**********************************************************************
 //
