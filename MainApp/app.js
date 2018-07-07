@@ -41,7 +41,7 @@ const getMeters = require("./getEnergyMeter.js");
 const getSolar = require("./getPVSystem.js");
 const solarOutputControl = require("./controlPowerOutput.js");
 const manageDatabase = require("./manageDatabase.js");
-const postProcess = require("./processData.js");
+const performanceData = require("./processData.js");
 
 //**********************************************************************
 //
@@ -150,11 +150,13 @@ const main = async () => {
 		let allInverterParameters = await getSolar.getInverters(smartlogger, numberOfInverters);
 		let allPVParameters = await getSolar.getSmartlogger(smartlogger);
 		let limitPVOutput = await solarOutputControl.adjustSolarOutput(smartlogger, allMeterParameters.Meter1.intakeTNB, allPVParameters.SmartLogger);
+		let systemPerformance = await performanceData.performanceParameters(allMeterParameters.Meter1, allPVParameters.SmartLogger);
 		console.log(`intakeTNB: ${allMeterParameters.Meter1.intakeTNB}`);
 		console.log(`totalPVacPower: ${allPVParameters.SmartLogger.totalPVacPower}`);
 		console.log(`activeAdjustment: ${allPVParameters.SmartLogger.activeAdjustment}`);
 		console.log(`totalBuildingLoad: ${allPVParameters.SmartLogger.totalBuildingLoad}`);
-		manageDatabase.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters);
+		console.log(`dailyMaxDemand: ${systemPerformance.dailyMaxDemand}`)
+		manageDatabase.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters, systemPerformance);
 	} catch (error) {
 		console.log(error.message);
 	} finally {
