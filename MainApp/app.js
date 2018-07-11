@@ -28,7 +28,7 @@
 //
 //**********************************************************************
 
-// const ModbusRTU = require("modbus-serial");
+const ModbusRTU = require("modbus-serial");
 const firebase = require("firebase");
 
 //**********************************************************************
@@ -52,11 +52,11 @@ const performanceData = require("./processData.js");
 
 var energyMeter = new ModbusRTU();
 energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error, success) {
-	if (error) {
-		console.log("Serial Port initialization unsuccessful");
-	} else {
-		console.log("Serial port initialization successful");
-	}
+ 	if (error) {
+ 		console.log("Serial Port initialization unsuccessful");
+ 	} else {
+ 		console.log("Serial port initialization successful");
+ 	}
 });
 
 //**********************************************************************
@@ -69,9 +69,9 @@ energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error,
 var smartlogger = new ModbusRTU();
 smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
 	if (error) {
-		console.log("TCP/IP port initialization unsuccessful");
-	} else {
-		console.log("TCP/IP port initialization successful");
+ 		console.log("TCP/IP port initialization unsuccessful");
+ 	} else {
+ 		console.log("TCP/IP port initialization successful");
 	}
 });
 
@@ -82,16 +82,17 @@ smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
 //
 //**********************************************************************
 
-// var config = {
-// 	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
-//     authDomain: "source-57d08.firebaseapp.com",
-//     databaseURL: "https://source-57d08.firebaseio.com",
-//     projectId: "source-57d08",
-//     storageBucket: "source-57d08.appspot.com",
-// };
-// firebase.initializeApp(config);
-// var projectDatabase = firebase.database();
+var config = {
+ 	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
+     authDomain: "source-57d08.firebaseapp.com",
+     databaseURL: "https://source-57d08.firebaseio.com",
+     projectId: "source-57d08",
+     storageBucket: "source-57d08.appspot.com",
+};
+firebase.initializeApp(config);
+var projectDatabase = firebase.database();
 
+/*
 var config = {
 	apiKey: "AIzaSyB-6YYD6W9-yN-E4wvFNpxtEL6IHX9nVuQ",
 	authDomain: "prototype-test-development.firebaseapp.com",
@@ -102,6 +103,7 @@ var config = {
 };
 firebase.initializeApp(config);
 var projectDatabase = firebase.database();
+*/ 
 
 //**********************************************************************
 //
@@ -151,17 +153,14 @@ const main = async () => {
 		let allPVParameters = await getSolar.getSmartlogger(smartlogger);
 		let limitPVOutput = await solarOutputControl.adjustSolarOutput(smartlogger, allMeterParameters.Meter1.intakeTNB, allPVParameters.SmartLogger);
 		let systemPerformance = await performanceData.performanceParameters(allMeterParameters.Meter1, allPVParameters.SmartLogger);
-		console.log(`intakeTNB: ${allMeterParameters.Meter1.intakeTNB}`);
-		console.log(`totalPVacPower: ${allPVParameters.SmartLogger.totalPVacPower}`);
-		console.log(`activeAdjustment: ${allPVParameters.SmartLogger.activeAdjustment}`);
-		console.log(`totalBuildingLoad: ${allPVParameters.SmartLogger.totalBuildingLoad}`);
-		console.log(`dailyMaxDemand: ${systemPerformance.dailyMaxDemand}`)
+		console.log("IntakeTNB:", allMeterParameters.Meter1.intakeTNB);
+		console.log(systemPerformance);
 		manageDatabase.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters, systemPerformance);
 	} catch (error) {
 		console.log(error.message);
 	} finally {
 		await delay(60000);
-		console.log('Done');
+		console.log('***** ITERATION COMPLETE *****');
 		main();
 	}
 };
