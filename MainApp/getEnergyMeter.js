@@ -67,7 +67,9 @@ const getEachMeter = async (energyMeter, slaveId) => {
 		EnergyParameters[meterId] = {
 			activeEnergy,
 			intakeTNB,
-			time: Date.now()
+			time: Date.now(),
+			month: new Date().getMonth() + 1,
+			year: new Date().getFullYear()
 		};
 	} catch (error) {
 		EnergyParameters[meterId] = {
