@@ -29,23 +29,26 @@ const manageData = (parentDatabase, connectionStatus, baselineControl, meterData
 	solarCurrentStatus(parentDatabase, solarData);
 
 	// Log system data every 10 minutes
-	if ((counter === 0) && (baselineControl === true)) {
-		counter = 0;
+	if ((counter === 10) && (baselineControl === true)) {
+		counter--;
 		let meterLogPath = "/PowerMeter/ThongGuanLot48/Baseline/";
 		pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
-	} else if ((counter === 0) && (baselineControl === false)) {
-		counter = 0;
+	} else if ((counter === 10) && (baselineControl === false)) {
+		counter--;
 		let meterLogPath = "/PowerMeter/ThongGuanLot48/Actual/";
 		let solarLogPath = "/SolarSystem/ThongGuanLot48/Datalog/";
 		pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
 		pushSolarData(parentDatabase, connectionStatus, solarLogPath, solarData);
-		pushSystemPerformance(parentDatabase, connectionStatus, solarLogPath, systemPerformance);
 	} else {
-		console.log(`Countdown to push data ${counter}`);
-	}	
-
-	// Decrement counter by 1		
-	counter--;
+		counter === 1 ? (
+			console.log(`Countdown: ${counter}`),
+			counter = 10
+		) : (
+			console.log(`Countdown: ${counter}`),
+			counter--
+		);
+	}
+	pushSystemPerformance(parentDatabase, connectionStatus, systemPerformance);
 }
 
 //**********************************************************************
@@ -76,7 +79,7 @@ const solarCurrentStatus = (parentDatabase, solarData) => {
 			let currentStatusRef = parentDatabase.ref("/SolarSystem/ThongGuanLot48/CurrentStatus/" + key);
 			currentStatusRef.set(solarData[key]);
 		} else {
-			console.log("I'm lost");
+			console.log("DeviceID is undefined");
 		}
 	}
 }
@@ -88,14 +91,16 @@ const solarCurrentStatus = (parentDatabase, solarData) => {
 //**********************************************************************
 
 const pushMeterData = (parentDatabase, connectionStatus, logPath, meterData) => {
-	let pathRef = parentDatabase.ref(logPath + key);
-	let uniqueKey = pathRef.push();
 	if (connectionStatus === true) {
 		for (const key of Object.keys(meterData)) {
+			let pathRef = parentDatabase.ref(logPath + key);
+			let uniqueKey = pathRef.push();
 			uniqueKey.set(meterData[key]);
 		}
 	} else {
 		for (const key of Object.keys(meterData)) {
+			let pathRef = parentDatabase.ref(logPath + key);
+			let uniqueKey = pathRef.push();
 			localDatabase[uniqueKey.key] = meterData[key];
 			uniqueKey.set(meterData[key]);
 		}
@@ -134,9 +139,6 @@ const pushSolarData = (parentDatabase, connectionStatus, solarLogPath, solarData
 				let actualRef = parentDatabase.ref(solarLogPath + key);
 				let uniqueKey = actualRef.push();
 				localDatabase[uniqueKey.key] = solarData[key];
-				// let offlineData = JSON.stringify(localDatabase, null, 2);
-				// uniqueKey.set(solarData[key]);
-				// json.writeFileSync("offlineData.JSON", offlineData);
 			} else {
 				console.log("Cannot read solarData");
 			}
@@ -146,19 +148,82 @@ const pushSolarData = (parentDatabase, connectionStatus, solarLogPath, solarData
 
 //**********************************************************************
 //
-// PUSH DAILY SYSTEM PERFORMANCE DATA TO FIREBASE
+// PUSH SYSTEM PERFORMANCE DATA TO FIREBASE
 //
 //**********************************************************************
 
-const pushSystemPerformance = (parentDatabase, connectionStatus, solarLogPath, systemPerformance) => {
-	let dailyReadingRef = parentDatabase.ref(solarLogPath + "DailyReadings");
-	let uniqueKey = dailyReadingRef.push();
-	if (connectionStatus === true) {
-		uniqueKey.set(systemPerformance);
+const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerformance) => {
+	let minute = new Date().getMinutes();
+    let hour = new Date().getHours();
+    let day = new Date().getDay();
+    let date = new Date().getDate();
+    
+    let solarLogPath = "/SolarSystem/ThongGuanLot48/Datalog/";
+    
+	if (connectionStatus === true) {			
+		for (const key of Object.keys(systemPerformance)) {
+			if (key.indexOf("DailyReadings") >= 0) {
+				if ((minute === 59) && (hour === 23)) {	
+					let dailyReadingRef = parentDatabase.ref(solarLogPath + "DailyReadings");
+					let uniqueKey = dailyReadingRef.push();
+					uniqueKey.set(systemPerformance[key]);
+				}
+			} else if (key.indexOf("WeeklyReadings") >= 0) {
+				if ((minute === 59) && (hour === 23) && (day === 6)) {
+					let dailyReadingRef = parentDatabase.ref(solarLogPath + "WeeklyReadings");
+					let uniqueKey = dailyReadingRef.push();
+					uniqueKey.set(systemPerformance[key]);
+				}
+			} else if (key.indexOf("MonthlyReadings") >= 0) {
+				if ((minute === 59) && (hour === 0) && (date === 1)) {
+					let dailyReadingRef = parentDatabase.ref(solarLogPath + "MonthlyReadings");
+					let uniqueKey = dailyReadingRef.push();
+					uniqueKey.set(systemPerformance[key]);
+				}
+			} else {
+				console.log("invalid systemPerformance");
+			}
+		}
 	} else {
-		localDatabase.DailyReadings[uniqueKey.key] = systemPerformance;
-		let offlineData = JSON.stringify(localDatabase, null, 2);
-		json.writeFileSync("offlineData.JSON", offlineData);
+		for (const key of Object.keys(systemPerformance)) {
+			if (key.indexOf("DailyReadings") >= 0) {
+				if ((minute === 59) && (hour === 23)) {
+					let dailyReadingRef = parentDatabase.ref(solarLogPath + "DailyReadings");
+					let uniqueKey = dailyReadingRef.push();
+					localDatabase[uniqueKey.key] = systemPerformance[key];
+					uniqueKey.set(systemPerformance[key]);
+					// Write to local database 
+					localDatabase.DailyReadings[uniqueKey.key] = systemPerformance;
+					let offlineData = JSON.stringify(localDatabase, null, 2);
+					json.writeFileSync("offlineData.JSON", offlineData);
+				}
+			} else if (key.indexOf("WeeklyReadings") >= 0) {
+				if ((minute === 59) && (hour === 23) && (day === 6)) {
+					let dailyReadingRef = parentDatabase.ref(solarLogPath + "WeeklyReadings");
+					let uniqueKey = dailyReadingRef.push();
+					localDatabase[uniqueKey.key] = systemPerformance[key];
+					uniqueKey.set(systemPerformance[key]);
+					// Write to local database 
+					localDatabase.DailyReadings[uniqueKey.key] = systemPerformance;
+					let offlineData = JSON.stringify(localDatabase, null, 2);
+					json.writeFileSync("offlineData.JSON", offlineData);
+				}
+			} else if (key.indexOf("MonthlyReadings") >= 0) {
+				if ((minute === 59) && (hour === 0) && (date === 1)) {
+					let dailyReadingRef = parentDatabase.ref(solarLogPath + "MonthlyReadings");
+					let uniqueKey = dailyReadingRef.push();
+					localDatabase[uniqueKey.key] = systemPerformance[key];
+					uniqueKey.set(systemPerformance[key]);
+					// Write to local database 
+					localDatabase.DailyReadings[uniqueKey.key] = systemPerformance;
+					let offlineData = JSON.stringify(localDatabase, null, 2);
+					json.writeFileSync("offlineData.JSON", offlineData);
+				}
+				
+			} else {
+				console.log("invalid systemPerformance");
+			}
+		}			
 	}
 }
 
