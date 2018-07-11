@@ -140,7 +140,9 @@ const getEachInverter = async (smartlogger, inverterNumber) => {
 			inverterPV4current, inverterPV4voltage,
 			inverterPV5current, inverterPV5voltage,
 			inverterPV6current, inverterPV6voltage,
-			time: Date.now()
+			time: Date.now(),
+			month: new Date().getMonth() + 1,
+			year: new Date().getFullYear()
 		};
 	} catch (error) {
 		PVSystemParameters[inverterId] = {
@@ -163,6 +165,7 @@ const getSmartlogger = async (smartlogger) => {
         let pvACSupply = await smartlogger.readHoldingRegisters(activePowerRegister_R, 2);
         PVSystemParameters.SmartLogger.totalPVacPower = pvACSupply.buffer.readUInt32BE(0) / 1000;
         PVSystemParameters.SmartLogger.time = Date.now();
+        PVSystemParameters.SmartLogger.month = new Date().getFullYear();
     } catch (error) {
         PVSystemParameters.SmartLogger.error = error.message;
 		PVSystemParameters.SmartLogger.time = Date.now();
