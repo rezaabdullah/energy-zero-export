@@ -105,7 +105,7 @@ const performanceParameters = async (meterData, smartloggerData) => {
 			dailyAvgSolarOutput: null			
 		};
     } else {
-        console.log("Nothing to reset");
+        console.log("DATA WILL RESET AT MIDNIGHT");
     }
     
     // Daily max. ambient temperature
@@ -148,6 +148,7 @@ const performanceParameters = async (meterData, smartloggerData) => {
 		}
     }
     
+    // Daily maximum demand
     switch (minute) {
         case 0:
             initialActiveEnergy = meterData.activeEnergy;
@@ -175,8 +176,7 @@ const performanceParameters = async (meterData, smartloggerData) => {
 		}
     }
 
-    // Daily accumulated Irradiance
-    
+    // Daily accumulated Irradiance    
     systemPerformanceData.DailyReadings.dailyAccIrradiance += smartloggerData.IRRsensor * TIME_ELAPSED;
     
     // Daily accumulated yield

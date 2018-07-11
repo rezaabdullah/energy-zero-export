@@ -195,7 +195,7 @@ const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerforman
 					// Write to local database 
 					localDatabase.DailyReadings[uniqueKey.key] = systemPerformance;
 					let offlineData = JSON.stringify(localDatabase, null, 2);
-					json.writeFileSync("offlineData.JSON", offlineData);
+					jsonFile.writeFileSync("offlineData.JSON", offlineData);
 				}
 			} else if (key.indexOf("WeeklyReadings") >= 0) {
 				if ((minute === 59) && (hour === 23) && (day === 6)) {
@@ -206,7 +206,7 @@ const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerforman
 					// Write to local database 
 					localDatabase.DailyReadings[uniqueKey.key] = systemPerformance;
 					let offlineData = JSON.stringify(localDatabase, null, 2);
-					json.writeFileSync("offlineData.JSON", offlineData);
+					jsonFile.writeFileSync("offlineData.JSON", offlineData);
 				}
 			} else if (key.indexOf("MonthlyReadings") >= 0) {
 				if ((minute === 59) && (hour === 0) && (date === 1)) {
@@ -217,7 +217,7 @@ const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerforman
 					// Write to local database 
 					localDatabase.DailyReadings[uniqueKey.key] = systemPerformance;
 					let offlineData = JSON.stringify(localDatabase, null, 2);
-					json.writeFileSync("offlineData.JSON", offlineData);
+					jsonFile.writeFileSync("offlineData.JSON", offlineData);
 				}
 				
 			} else {

@@ -11,14 +11,14 @@
 //
 // MODULES
 //
-// 1. Energy Parameters Query - COMPLETE (REZA)
-// 2. Smartlogger Parameters Query - COMPLETE (REZA)
+// 1. ENERGY PARAMETERS QUERY - COMPLETE (REZA)
+// 2. SMARTLOGGER PARAMETERS QUERY - COMPLETE (REZA)
 // 3. CONTROLLING MODBUS DEVICES - COMPLETE (REZA)
 // 4. DATABASE - COMPLETE (REZA)
 // 5. OFFLINE DATA MANAGEMENT - COMPLETE (REZA)
-// 6. AUTO STARTUP NODE SCRIPT - COMPLETE (REZA)
+// 6. STARTUP NODE SCRIPT - COMPLETE (REZA)
 //
-// Just wishful thinking - what if we could initiate through Firebase & GUI/HMI
+// FURTHER IMPROVEMENT: INITIALIZE SYSTEM THROUGH GUI OR DIFFERENT SCRIPT
 //
 //**********************************************************************
 
@@ -121,7 +121,14 @@ connectedRef.on("value", function(snap) {
 	}
 });
 
-// Check baseline status
+//**********************************************************************
+//
+// CHECK BASELINE VALUE
+// BASELINE VALUE REPRESENTS STATE OF THE SYSTEM PRIOR TO INSTALLATION
+// OF SOLAR SYSTEMS
+//
+//**********************************************************************
+
 var baselineControl = null;
 let baselineControlRef = projectDatabase.ref('/Customer/ThongGuanLot48/DatalogControl/');
 baselineControlRef.once('value').then(function(snapshot) {
@@ -159,8 +166,8 @@ const main = async () => {
 	} catch (error) {
 		console.log(error.message);
 	} finally {
-		await delay(60000);
 		console.log('***** ITERATION COMPLETE *****');
+		await delay(60000);
 		main();
 	}
 };
