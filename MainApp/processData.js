@@ -5,25 +5,27 @@
 //**********************************************************************
 
 function SystemPerformanceData() {
-    this.dailyMaxAmbientTemp = null,
-    this.dailyMaxSolarTemp = null,
-    this.dailyMaxIrradiance = null,
-    this.dailyMaxIntake = null,
-    this.dailyMaxSolarOutput = null,
-    this.dailyMaxDemand = null,
-    this.dailyAccIrradiance = null,
-    this.dailyAccYield = null,
-    this.dailyAccBuildingLoad = null,
-    this.dailyAvgSolarOutput = null,   
-    this.dailyPerformanceRatio = null,
-    this.dailyEnergySavings = null,
-    this.weeklyAccBuildingLoad = null,
-    this.monthlyAccBuildingLoad = null,
-    this.monthlyMaxDemand = null,
-    this.monthlyAccYield = null,
-    this.monthlyAccIrradiance = null,
-    this.monthlyPerformanceRatio = null,
-    this.monthlyEnergySavings = null
+    this.DailyReadings = {
+		dailyMaxAmbientTemp: null,
+		dailyMaxSolarTemp: null,
+		dailyMaxIrradiance: null,
+		dailyMaxIntake: null,
+		dailyMaxSolarOutput: null,
+		dailyMaxDemand: null,
+		dailyAccIrradiance: null,
+		dailyAccYield: null,
+		dailyAccBuildingLoad: null,
+		dailyAvgSolarOutput: null
+	},
+	this.WeeklyReadings = {
+		weeklyAccBuildingLoad: null
+	},
+    this.MonthlyReadings = {
+		monthlyMaxDemand: null,
+		monthlyAccBuildingLoad: null,
+		monthlyAccYield: null,
+		monthlyAccIrradiance: null
+	}
 }
 
 systemPerformanceData = new SystemPerformanceData();
@@ -40,11 +42,20 @@ let initialActiveEnergy = null;
 //**********************************************************************
 //
 // NUMBER OF DATA TO CALCULATE DAILY AVERAGE SOLAR OUTPUT
-// 6 nos./hr * 12 hr (7AM - 7PM) = 72
+// 60 nos./hr * 12 hr (7AM - 7PM) = 720
 // 
 //**********************************************************************
 
-const NUMBER_OF_DAILY_SAMPLE = 72;
+const NUMBER_OF_DAILY_SAMPLE = 720;
+
+//**********************************************************************
+//
+// TIME ELAPSED BETWEEN TWO ITERATION
+// 60 sec * (1hr. / 3600 sec) = 0.0167 hr
+// 
+//**********************************************************************
+
+const TIME_ELAPSED = 0.0167;
 
 //**********************************************************************
 //
@@ -53,61 +64,88 @@ const NUMBER_OF_DAILY_SAMPLE = 72;
 //**********************************************************************
 
 const performanceParameters = async (meterData, smartloggerData) => {
-    // Time
+    // Time elements to calculate Maximum Demand and reset systemPerformanceData
     let minute = new Date().getMinutes();
     let hour = new Date().getHours();
     let day = new Date().getDay();
     let date = new Date().getDate();
+    let time = Date.now();
 
     // Reset systemPerformanceData
-    if ((minute === 0) && (hour === 0) && (day === 0) && (date === 0)) {
+    if ((minute === 0) && (hour === 1) && (date === 1)) {
         // Reset all the properties every month
         systemPerformanceData = new SystemPerformanceData();
     } else if ((minute === 0) && (hour === 0) && (day === 0)) {
         // Reset all the properties except monthly data
-        let count = 0;
-        for (let property in systemPerformanceData) {
-            if (count < 13) {
-                systemPerformanceData[property] = null;
-            }
-            count++;
-        }
+        systemPerformanceData.DailyReadings = {
+			dailyMaxAmbientTemp: null,
+			dailyMaxSolarTemp: null,
+			dailyMaxIrradiance: null,
+			dailyMaxIntake: null,
+			dailyMaxSolarOutput: null,
+			dailyMaxDemand: null,
+			dailyAccIrradiance: null,
+			dailyAccYield: null,
+			dailyAccBuildingLoad: null,
+			dailyAvgSolarOutput: null			
+		};
+        systemPerformanceData.WeeklyReadings.weeklyAccBuildingLoad = null;
     } else if ((minute === 0) && (hour === 0)) {
         // Reset daily properties
-        let count = 0;
-        for (let property in systemPerformanceData) {
-            if (count < 12) {
-                systemPerformanceData[property] = null;
-            }
-            count++;
-        }
+        systemPerformanceData.DailyReadings = {
+			dailyMaxAmbientTemp: null,
+			dailyMaxSolarTemp: null,
+			dailyMaxIrradiance: null,
+			dailyMaxIntake: null,
+			dailyMaxSolarOutput: null,
+			dailyMaxDemand: null,
+			dailyAccIrradiance: null,
+			dailyAccYield: null,
+			dailyAccBuildingLoad: null,
+			dailyAvgSolarOutput: null			
+		};
     } else {
         console.log("Nothing to reset");
     }
     
     // Daily max. ambient temperature
-    if ((systemPerformanceData.dailyMaxAmbientTemp === null) || (systemPerformanceData.dailyMaxAmbientTemp < smartloggerData.ambientTemp)) {
-        systemPerformanceData.dailyMaxAmbientTemp = smartloggerData.ambientTemp;
+    if ((systemPerformanceData.DailyReadings.dailyMaxAmbientTemp === null) || (systemPerformanceData.DailyReadings.dailyMaxAmbientTemp.dailyMaxAmbientTemp < smartloggerData.ambientTemp)) {
+        systemPerformanceData.DailyReadings.dailyMaxAmbientTemp = {
+			dailyMaxAmbientTemp: smartloggerData.ambientTemp,
+			time
+		}
     }
 
     // Daily max. module temperature
-    if ((systemPerformanceData.dailyMaxSolarTemp === null) || (systemPerformanceData.dailyMaxSolarTemp < smartloggerData.moduleTemp)) {
-        systemPerformanceData.dailyMaxSolarTemp = smartloggerData.moduleTemp;
+    if ((systemPerformanceData.DailyReadings.dailyMaxSolarTemp === null) || (systemPerformanceData.DailyReadings.dailyMaxSolarTemp.dailyMaxSolarTemp < smartloggerData.moduleTemp)) {
+        systemPerformanceData.DailyReadings.dailyMaxSolarTemp = {
+			dailyMaxSolarTemp: smartloggerData.moduleTemp,
+			time
+		}
     }
     
     // Daily max. Irradiance
-    if ((systemPerformanceData.dailyMaxIrradiance === null) || (systemPerformanceData.dailyMaxIrradiance < smartloggerData.IRRsensor)) {
-        systemPerformanceData.dailyMaxIrradiance = smartloggerData.IRRsensor;
+    if ((systemPerformanceData.DailyReadings.dailyMaxIrradiance === null) || (systemPerformanceData.DailyReadings.dailyMaxIrradiance.dailyMaxIrradiance < smartloggerData.IRRsensor)) {
+        systemPerformanceData.DailyReadings.dailyMaxIrradiance = {
+			dailyMaxIrradiance: smartloggerData.IRRsensor,
+			time
+		}
     }
     
     // Daily max. Power Intake
-    if ((systemPerformanceData.dailyMaxIntake === null) || (systemPerformanceData.dailyMaxIntake < meterData.intakeTNB)) {
-        systemPerformanceData.dailyMaxIntake = meterData.intakeTNB;
+    if ((systemPerformanceData.DailyReadings.dailyMaxIntake === null) || (systemPerformanceData.DailyReadings.dailyMaxIntake.dailyMaxIntake < meterData.intakeTNB)) {
+        systemPerformanceData.DailyReadings.dailyMaxIntake = {
+			dailyMaxIntake: meterData.intakeTNB,
+			time
+		};
     }
     
     // Daily max. Solar output
-    if ((systemPerformanceData.dailyMaxSolarOutput === null) || (systemPerformanceData.dailyMaxSolarOutput < smartloggerData.totalPVacPower)) {
-        systemPerformanceData.dailyMaxSolarOutput = smartloggerData.totalPVacPower;
+    if ((systemPerformanceData.DailyReadings.dailyMaxSolarOutput === null) || (systemPerformanceData.DailyReadings.dailyMaxSolarOutput.dailyMaxSolarOutput < smartloggerData.totalPVacPower)) {
+        systemPerformanceData.DailyReadings.dailyMaxSolarOutput = {
+			dailyMaxSolarOutput: smartloggerData.totalPVacPower,
+			time
+		}
     }
     
     switch (minute) {
@@ -115,33 +153,43 @@ const performanceParameters = async (meterData, smartloggerData) => {
             initialActiveEnergy = meterData.activeEnergy;
             break;
         case 29:
-            maxDemand = (meterData.activeEnergy - initialActiveEnergy) / 0.5;
+			if (initialActiveEnergy !== null) {
+				maxDemand = (meterData.activeEnergy - initialActiveEnergy) / 0.5;
+			}
             break;
         case 30:
             initialActiveEnergy = meterData.activeEnergy;
             break;
         case 59:
-            maxDemand = (meterData.activeEnergy - initialActiveEnergy) / 0.5;
+			if (initialActiveEnergy !== null) {
+				maxDemand = (meterData.activeEnergy - initialActiveEnergy) / 0.5;
+			}
             break;
         default:
-            console.log("Max. demand will be 30 minutes");
             break;
     }
-    if (maxDemand > systemPerformanceData.dailyMaxDemand) {
-        systemPerformanceData.dailyMaxDemand = maxDemand;
+    if (maxDemand > systemPerformanceData.DailyReadings.dailyMaxDemand) {
+        systemPerformanceData.DailyReadings.dailyMaxDemand = {
+			dailyMaxDemand: maxDemand,
+			time
+		}
     }
 
     // Daily accumulated Irradiance
-    systemPerformanceData.dailyAccIrradiance += smartloggerData.IRRsensor;
+    
+    systemPerformanceData.DailyReadings.dailyAccIrradiance += smartloggerData.IRRsensor * TIME_ELAPSED;
     
     // Daily accumulated yield
-    systemPerformanceData.dailyAccYield += smartloggerData.totalPVacPower;
+    systemPerformanceData.DailyReadings.dailyAccYield += smartloggerData.totalPVacPower * TIME_ELAPSED;
     
     // Daily accumulated building load
-    systemPerformanceData.dailyAccBuildingLoad += smartloggerData.totalBuildingLoad;
+    systemPerformanceData.DailyReadings.dailyAccBuildingLoad += smartloggerData.totalBuildingLoad * TIME_ELAPSED;
 
     // Daily average yield
-    systemPerformanceData.dailyAvgSolarOutput = systemPerformanceData.dailyAccYield / NUMBER_OF_DAILY_SAMPLE;
+    systemPerformanceData.DailyReadings.dailyAvgSolarOutput = systemPerformanceData.DailyReadings.dailyAccYield / NUMBER_OF_DAILY_SAMPLE;
+    
+    // Timestamp daily readings
+    systemPerformanceData.DailyReadings.time = time;
     
     // Daily performance ratio
     // NEED MORE INFO
@@ -152,21 +200,30 @@ const performanceParameters = async (meterData, smartloggerData) => {
     // systemPerformanceData.dailyEnergySavings = systemPerformanceData.dailyAccYield * ENERGY_TARIFF;
 
     // Weekly accumulated building load
-    systemPerformanceData.weeklyAccBuildingLoad += smartloggerData.totalBuildingLoad;   
+    systemPerformanceData.WeeklyReadings.weeklyAccBuildingLoad += smartloggerData.totalBuildingLoad * TIME_ELAPSED;
+    
+    // Timestamp weekly readings
+    systemPerformanceData.WeeklyReadings.time = time; 
     
     // Monthly max demand
-    if (maxDemand > systemPerformanceData.monthlyMaxDemand) {
-        systemPerformanceData.monthlyMaxDemand = maxDemand;
+    if (maxDemand > systemPerformanceData.MonthlyReadings.monthlyMaxDemand) {
+        systemPerformanceData.MonthlyReadings.monthlyMaxDemand = {
+			monthlyMaxDemand: maxDemand,
+			time
+		}
     }
 
     // Monthly accumulated building load
-    systemPerformanceData.monthlyAccBuildingLoad += smartloggerData.totalBuildingLoad;
+    systemPerformanceData.MonthlyReadings.monthlyAccBuildingLoad += smartloggerData.totalBuildingLoad * TIME_ELAPSED;
 
     // Monthly accumulated yield
-    systemPerformanceData.monthlyAccYield += smartloggerData.totalBuildingLoad;
+    systemPerformanceData.MonthlyReadings.monthlyAccYield += smartloggerData.totalPVacPower * TIME_ELAPSED;
 
     // Monthly accumulated Irradiance
-    systemPerformanceData.monthlyAccIrradiance += smartloggerData.IRRsensor;
+    systemPerformanceData.MonthlyReadings.monthlyAccIrradiance += smartloggerData.IRRsensor * TIME_ELAPSED;
+    
+    // Timestamp monthly readings
+    systemPerformanceData.MonthlyReadings.time = time;
 
     // Monthly performance ratio
     // NEED MORE INFO
