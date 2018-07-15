@@ -23,6 +23,20 @@ var counter = 10;
 
 var localDatabase = new Object;
 
+//**********************************************************************
+//
+// 10 MINUTES COUNTER TO PUSH DATA TO FIREBASE
+// 
+//**********************************************************************
+
+const CUSTOMER_NAME = 'ThongGuanLot48';
+
+//**********************************************************************
+//
+// MANAGE DATA
+// 
+//**********************************************************************
+
 const manageData = (parentDatabase, connectionStatus, baselineControl, meterData, solarData, systemPerformance) => {
 	// Set current status for the system
 	meterCurrentStatus(parentDatabase, meterData);
@@ -31,12 +45,12 @@ const manageData = (parentDatabase, connectionStatus, baselineControl, meterData
 	// Log system data every 10 minutes
 	if ((counter === 10) && (baselineControl === true)) {
 		counter--;
-		let meterLogPath = "/PowerMeter/ThongGuanLot48/Baseline/";
+		let meterLogPath = "/PowerMeter/" + CUSTOMER_NAME + "/Baseline/";
 		pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
 	} else if ((counter === 10) && (baselineControl === false)) {
 		counter--;
-		let meterLogPath = "/PowerMeter/ThongGuanLot48/Actual/";
-		let solarLogPath = "/SolarSystem/ThongGuanLot48/Datalog/";
+		let meterLogPath = "/PowerMeter/" + CUSTOMER_NAME + "/Actual/";
+		let solarLogPath = "/SolarSystem/" + CUSTOMER_NAME + "/Datalog/";
 		pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
 		pushSolarData(parentDatabase, connectionStatus, solarLogPath, solarData);
 	} else {
@@ -59,7 +73,8 @@ const manageData = (parentDatabase, connectionStatus, baselineControl, meterData
 
 const meterCurrentStatus = (parentDatabase, meterData) => {
 	for (const key of Object.keys(meterData)) {
-		let currentStatusRef = parentDatabase.ref("/PowerMeter/ThongGuanLot48/CurrentStatus/" + key);
+		let currentStatusPath = "/PowerMeter/" + CUSTOMER_NAME + "/CurrentStatus/";
+		let currentStatusRef = parentDatabase.ref(currentStatusPath + key);
 		currentStatusRef.set(meterData[key]);
 	};
 }
@@ -73,10 +88,12 @@ const meterCurrentStatus = (parentDatabase, meterData) => {
 const solarCurrentStatus = (parentDatabase, solarData) => {
 	for (const key of Object.keys(solarData)) {
 		if (key.indexOf("inverter") >= 0) {
-			let currentStatusRef = parentDatabase.ref("/SolarSystem/ThongGuanLot48/CurrentStatus/Inverter/" + key);
+			let currentStatusPath = "/SolarSystem/" + CUSTOMER_NAME + "/CurrentStatus/Inverter/";
+			let currentStatusRef = parentDatabase.ref(currentStatusPath + key);
 			currentStatusRef.set(solarData[key]);
 		} else if (key.indexOf("SmartLogger") >= 0) {
-			let currentStatusRef = parentDatabase.ref("/SolarSystem/ThongGuanLot48/CurrentStatus/" + key);
+			let currentStatusPath = "/SolarSystem/" + CUSTOMER_NAME + "/CurrentStatus/";
+			let currentStatusRef = parentDatabase.ref(currentStatusPath + key);
 			currentStatusRef.set(solarData[key]);
 		} else {
 			console.log("DeviceID is undefined");
@@ -158,7 +175,7 @@ const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerforman
     let day = new Date().getDay();
     let date = new Date().getDate();
     
-    let solarLogPath = "/SolarSystem/ThongGuanLot48/Datalog/";
+    let solarLogPath = "/SolarSystem/" + CUSTOMER_NAME + "/Datalog/";
     
 	if (connectionStatus === true) {			
 		for (const key of Object.keys(systemPerformance)) {
