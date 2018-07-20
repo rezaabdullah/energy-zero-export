@@ -11,14 +11,14 @@
 //
 // MODULES
 //
-// 1. ENERGY PARAMETERS QUERY - COMPLETE (REZA)
-// 2. SMARTLOGGER PARAMETERS QUERY - COMPLETE (REZA)
+// 1. Energy Parameters Query - COMPLETE (REZA)
+// 2. Smartlogger Parameters Query - COMPLETE (REZA)
 // 3. CONTROLLING MODBUS DEVICES - COMPLETE (REZA)
 // 4. DATABASE - COMPLETE (REZA)
 // 5. OFFLINE DATA MANAGEMENT - COMPLETE (REZA)
-// 6. STARTUP NODE SCRIPT - COMPLETE (REZA)
+// 6. AUTO STARTUP NODE SCRIPT - COMPLETE (REZA)
 //
-// FURTHER IMPROVEMENT: INITIALIZE SYSTEM THROUGH GUI OR DIFFERENT SCRIPT
+// Just wishful thinking - what if we could initiate through Firebase & GUI/HMI
 //
 //**********************************************************************
 
@@ -92,19 +92,6 @@ var config = {
 firebase.initializeApp(config);
 var projectDatabase = firebase.database();
 
-/*
-var config = {
-	apiKey: "AIzaSyB-6YYD6W9-yN-E4wvFNpxtEL6IHX9nVuQ",
-	authDomain: "prototype-test-development.firebaseapp.com",
-	databaseURL: "https://prototype-test-development.firebaseio.com",
-	projectId: "prototype-test-development",
-	storageBucket: "prototype-test-development.appspot.com",
-	messagingSenderId: "451205828907"
-};
-firebase.initializeApp(config);
-var projectDatabase = firebase.database();
-*/ 
-
 //**********************************************************************
 //
 // CHECK INTERNET CONNECTION
@@ -123,9 +110,7 @@ connectedRef.on("value", function(snap) {
 
 //**********************************************************************
 //
-// CHECK BASELINE VALUE
-// BASELINE VALUE REPRESENTS STATE OF THE SYSTEM PRIOR TO INSTALLATION
-// OF SOLAR SYSTEMS
+// CHECK BASELINE STATUS
 //
 //**********************************************************************
 
@@ -135,6 +120,22 @@ baselineControlRef.once('value').then(function(snapshot) {
 	baselineControl = snapshot.val().Baseline;
 }).catch(error => {
 	console.log(error);
+});
+
+//**********************************************************************
+//
+// CHECK CONFIGURATIONS OF PV SYSTEM
+//
+//**********************************************************************
+
+var solarSystemConfig = new Object;
+let configRef = projectDatabase.ref('/Customer/ThongGuanLot48/Config/');
+configRef.once('value', function(snapshot) {
+	snapshot.forEach(function(childSnapshot) {
+		let key = childSnapshot.key;
+		let value = childSnapshot.val();
+		solarSystemConfig[key] = value;
+	});
 });
 
 //**********************************************************************
@@ -159,15 +160,15 @@ const main = async () => {
 		let allInverterParameters = await getSolar.getInverters(smartlogger, numberOfInverters);
 		let allPVParameters = await getSolar.getSmartlogger(smartlogger);
 		let limitPVOutput = await solarOutputControl.adjustSolarOutput(smartlogger, allMeterParameters.Meter1.intakeTNB, allPVParameters.SmartLogger);
-		let systemPerformance = await performanceData.performanceParameters(allMeterParameters.Meter1, allPVParameters.SmartLogger);
-		console.log("IntakeTNB:", allMeterParameters.Meter1.intakeTNB);
-		console.log(systemPerformance);
+		let systemPerformance = await performanceData.performanceParameters(allMeterParameters.Meter1, allPVParameters.SmartLogger, solarSystemConfig);
+		//console.log("IntakeTNB:", allMeterParameters.Meter1.intakeTNB);
+		console.log("systemPerformance:", systemPerformance);
 		manageDatabase.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters, systemPerformance);
 	} catch (error) {
 		console.log(error.message);
 	} finally {
-		console.log('***** ITERATION COMPLETE *****');
 		await delay(60000);
+		console.log('***** ITERATION COMPLETE *****');
 		main();
 	}
 };
