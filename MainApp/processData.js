@@ -1,239 +1,187 @@
 //**********************************************************************
 //
-// SYSTEM PERFORMANCE DATA CONSTRUCTOR
-// 
+// Copyright (c) 2017-2018 Plus NRG Systems Sdn. Bhd.
+//
+// This software should be used as a template for future NodeJS apps. 
+// Pls refer to individual modules for more information. To ensure
+// quality, any update or modification on any modules should be verified
+// and approved before deployment to project sites.
+//
+//**********************************************************************
+//
+// MODULES
+//
+// 1. Energy Parameters Query - COMPLETE (REZA)
+// 2. Smartlogger Parameters Query - COMPLETE (REZA)
+// 3. CONTROLLING MODBUS DEVICES - COMPLETE (REZA)
+// 4. DATABASE - COMPLETE (REZA)
+// 5. OFFLINE DATA MANAGEMENT - COMPLETE (REZA)
+// 6. AUTO STARTUP NODE SCRIPT - COMPLETE (REZA)
+//
+// Just wishful thinking - what if we could initiate through Firebase & GUI/HMI
+//
 //**********************************************************************
 
-function SystemPerformanceData() {
-    this.DailyReadings = {
-		dailyMaxAmbientTemp: null,
-		dailyMaxSolarTemp: null,
-		dailyMaxIrradiance: null,
-		dailyMaxIntake: null,
-		dailyMaxSolarOutput: null,
-		dailyMaxDemand: null,
-		dailyAccIrradiance: null,
-		dailyAccYield: null,
-		dailyAccBuildingLoad: null,
-		dailyAvgSolarOutput: null
-	},
-	this.WeeklyReadings = {
-		weeklyAccBuildingLoad: null
-	},
-    this.MonthlyReadings = {
-		monthlyMaxDemand: null,
-		monthlyAccBuildingLoad: null,
-		monthlyAccYield: null,
-		monthlyAccIrradiance: null
+//**********************************************************************
+//
+// NPM MODULES
+//
+//**********************************************************************
+
+const ModbusRTU = require("modbus-serial");
+const firebase = require("firebase");
+
+//**********************************************************************
+//
+// ADDITIONAL MODULES
+//
+//**********************************************************************
+
+const getMeters = require("./getEnergyMeter.js");
+const getSolar = require("./getPVSystem.js");
+const solarOutputControl = require("./controlPowerOutput.js");
+const manageDatabase = require("./manageDatabase.js");
+const performanceData = require("./processData.js");
+
+//**********************************************************************
+//
+// INITIAL CONFIGURATIONS: MODBUS-RTU RS-485
+// DIGITAL POWER METER
+//
+//**********************************************************************
+
+var energyMeter = new ModbusRTU();
+energyMeter.connectRTUBuffered("/dev/ttyAMA0", {baudRate: 9600}, function(error, success) {
+ 	if (error) {
+ 		console.log("Serial Port initialization unsuccessful");
+ 	} else {
+ 		console.log("Serial port initialization successful");
+ 	}
+});
+
+//**********************************************************************
+//
+// INITIAL CONFIGURATIONS: MODBUS RTU TCP/IP
+// HUAWEI SMARTLOGGER 
+//
+//**********************************************************************
+
+var smartlogger = new ModbusRTU();
+smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
+	if (error) {
+ 		console.log("TCP/IP port initialization unsuccessful");
+ 	} else {
+ 		console.log("TCP/IP port initialization successful");
 	}
-}
-
-systemPerformanceData = new SystemPerformanceData();
+});
 
 //**********************************************************************
 //
-// TEMPORARY PLACE HOLDER TO CALCULATE MAXIMUM DEMAND
-// 
-//**********************************************************************
-
-let maxDemand = null;
-let initialActiveEnergy = null;
-
-//**********************************************************************
-//
-// NUMBER OF DATA TO CALCULATE DAILY AVERAGE SOLAR OUTPUT
-// 60 nos./hr * 12 hr (7AM - 7PM) = 720
-// 
-//**********************************************************************
-
-const NUMBER_OF_DAILY_SAMPLE = 720;
-
-//**********************************************************************
-//
-// TIME ELAPSED BETWEEN TWO ITERATION
-// 60 sec * (1hr. / 3600 sec) = 0.0167 hr
-// 
-//**********************************************************************
-
-const TIME_ELAPSED = 0.0167;
-
-//**********************************************************************
-//
-// PUSH SYSTEM PERFORMANCE DATA TO FIREBASE
+// INITIAL CONFIGURATIONS: FIREBASE
+// REALTIME DATABASE
 //
 //**********************************************************************
 
-const performanceParameters = async (meterData, smartloggerData) => {
-    // Time elements to calculate Maximum Demand and reset systemPerformanceData
-    let minute = new Date().getMinutes();
-    let hour = new Date().getHours();
-    let day = new Date().getDay();
-    let date = new Date().getDate();
-    let time = Date.now();
+var config = {
+ 	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
+     authDomain: "source-57d08.firebaseapp.com",
+     databaseURL: "https://source-57d08.firebaseio.com",
+     projectId: "source-57d08",
+     storageBucket: "source-57d08.appspot.com",
+};
+firebase.initializeApp(config);
+var projectDatabase = firebase.database();
 
-    // Reset systemPerformanceData
-    if ((minute === 0) && (hour === 1) && (date === 1)) {
-        // Reset all the properties every month
-        systemPerformanceData = new SystemPerformanceData();
-    } else if ((minute === 0) && (hour === 0) && (day === 0)) {
-        // Reset all the properties except monthly data
-        systemPerformanceData.DailyReadings = {
-			dailyMaxAmbientTemp: null,
-			dailyMaxSolarTemp: null,
-			dailyMaxIrradiance: null,
-			dailyMaxIntake: null,
-			dailyMaxSolarOutput: null,
-			dailyMaxDemand: null,
-			dailyAccIrradiance: null,
-			dailyAccYield: null,
-			dailyAccBuildingLoad: null,
-			dailyAvgSolarOutput: null			
-		};
-        systemPerformanceData.WeeklyReadings.weeklyAccBuildingLoad = null;
-    } else if ((minute === 0) && (hour === 0)) {
-        // Reset daily properties
-        systemPerformanceData.DailyReadings = {
-			dailyMaxAmbientTemp: null,
-			dailyMaxSolarTemp: null,
-			dailyMaxIrradiance: null,
-			dailyMaxIntake: null,
-			dailyMaxSolarOutput: null,
-			dailyMaxDemand: null,
-			dailyAccIrradiance: null,
-			dailyAccYield: null,
-			dailyAccBuildingLoad: null,
-			dailyAvgSolarOutput: null			
-		};
-    } else {
-        console.log("DATA WILL RESET AT MIDNIGHT");
-    }
-    
-    // Daily max. ambient temperature
-    if ((systemPerformanceData.DailyReadings.dailyMaxAmbientTemp === null) || (systemPerformanceData.DailyReadings.dailyMaxAmbientTemp.dailyMaxAmbientTemp < smartloggerData.ambientTemp)) {
-        systemPerformanceData.DailyReadings.dailyMaxAmbientTemp = {
-			dailyMaxAmbientTemp: smartloggerData.ambientTemp,
-			time
-		}
-    }
+//**********************************************************************
+//
+// CHECK INTERNET CONNECTION
+//
+//**********************************************************************
 
-    // Daily max. module temperature
-    if ((systemPerformanceData.DailyReadings.dailyMaxSolarTemp === null) || (systemPerformanceData.DailyReadings.dailyMaxSolarTemp.dailyMaxSolarTemp < smartloggerData.moduleTemp)) {
-        systemPerformanceData.DailyReadings.dailyMaxSolarTemp = {
-			dailyMaxSolarTemp: smartloggerData.moduleTemp,
-			time
-		}
-    }
-    
-    // Daily max. Irradiance
-    if ((systemPerformanceData.DailyReadings.dailyMaxIrradiance === null) || (systemPerformanceData.DailyReadings.dailyMaxIrradiance.dailyMaxIrradiance < smartloggerData.IRRsensor)) {
-        systemPerformanceData.DailyReadings.dailyMaxIrradiance = {
-			dailyMaxIrradiance: smartloggerData.IRRsensor,
-			time
-		}
-    }
-    
-    // Daily max. Power Intake
-    if ((systemPerformanceData.DailyReadings.dailyMaxIntake === null) || (systemPerformanceData.DailyReadings.dailyMaxIntake.dailyMaxIntake < meterData.intakeTNB)) {
-        systemPerformanceData.DailyReadings.dailyMaxIntake = {
-			dailyMaxIntake: meterData.intakeTNB,
-			time
-		};
-    }
-    
-    // Daily max. Solar output
-    if ((systemPerformanceData.DailyReadings.dailyMaxSolarOutput === null) || (systemPerformanceData.DailyReadings.dailyMaxSolarOutput.dailyMaxSolarOutput < smartloggerData.totalPVacPower)) {
-        systemPerformanceData.DailyReadings.dailyMaxSolarOutput = {
-			dailyMaxSolarOutput: smartloggerData.totalPVacPower,
-			time
-		}
-    }
-    
-    // Daily maximum demand
-    switch (minute) {
-        case 0:
-            initialActiveEnergy = meterData.activeEnergy;
-            break;
-        case 29:
-			if (initialActiveEnergy !== null) {
-				maxDemand = (meterData.activeEnergy - initialActiveEnergy) / 0.5;
-			}
-            break;
-        case 30:
-            initialActiveEnergy = meterData.activeEnergy;
-            break;
-        case 59:
-			if (initialActiveEnergy !== null) {
-				maxDemand = (meterData.activeEnergy - initialActiveEnergy) / 0.5;
-			}
-            break;
-        default:
-            break;
-    }
-    if (maxDemand > systemPerformanceData.DailyReadings.dailyMaxDemand) {
-        systemPerformanceData.DailyReadings.dailyMaxDemand = {
-			dailyMaxDemand: maxDemand,
-			time
-		}
-    }
+var connectionStatus = null;
+const connectedRef = firebase.database().ref(".info/connected");
+connectedRef.on("value", function(snap) {
+	if (snap.val()) {
+		connectionStatus = snap.val();
+	} else {
+		connectionStatus = false;
+	}
+});
 
-    // Daily accumulated Irradiance    
-    systemPerformanceData.DailyReadings.dailyAccIrradiance += smartloggerData.IRRsensor * TIME_ELAPSED;
-    
-    // Daily accumulated yield
-    systemPerformanceData.DailyReadings.dailyAccYield += smartloggerData.totalPVacPower * TIME_ELAPSED;
-    
-    // Daily accumulated building load
-    systemPerformanceData.DailyReadings.dailyAccBuildingLoad += smartloggerData.totalBuildingLoad * TIME_ELAPSED;
+//**********************************************************************
+//
+// CHECK BASELINE STATUS
+//
+//**********************************************************************
 
-    // Daily average yield
-    systemPerformanceData.DailyReadings.dailyAvgSolarOutput = systemPerformanceData.DailyReadings.dailyAccYield / NUMBER_OF_DAILY_SAMPLE;
-    
-    // Timestamp daily readings
-    systemPerformanceData.DailyReadings.time = time;
-    
-    // Daily performance ratio
-    // NEED MORE INFO
-    // systemPerformanceData.dailyPerformanceRatio = (systemPerformanceData.dailyAccYield / 6) / (panelEfficiency * areaOfArray * (systemPerformanceData.dailyAccIrradiance/6000));
+var baselineControl = null;
+let baselineControlRef = projectDatabase.ref('/Customer/ThongGuanLot48/DatalogControl/');
+baselineControlRef.once('value').then(function(snapshot) {
+	baselineControl = snapshot.val().Baseline;
+}).catch(error => {
+	console.log(error);
+});
 
-    // Daily energy savings
-    // NEED TARIFF INFO
-    // systemPerformanceData.dailyEnergySavings = systemPerformanceData.dailyAccYield * ENERGY_TARIFF;
+//**********************************************************************
+//
+// CHECK CONFIGURATIONS OF PV SYSTEM
+//
+//**********************************************************************
 
-    // Weekly accumulated building load
-    systemPerformanceData.WeeklyReadings.weeklyAccBuildingLoad += smartloggerData.totalBuildingLoad * TIME_ELAPSED;
-    
-    // Timestamp weekly readings
-    systemPerformanceData.WeeklyReadings.time = time; 
-    
-    // Monthly max demand
-    if (maxDemand > systemPerformanceData.MonthlyReadings.monthlyMaxDemand) {
-        systemPerformanceData.MonthlyReadings.monthlyMaxDemand = {
-			monthlyMaxDemand: maxDemand,
-			time
-		}
-    }
+var solarSystemConfig = new Object;
+let configRef = projectDatabase.ref('/Customer/ThongGuanLot48/Config/');
+configRef.once('value', function(snapshot) {
+	snapshot.forEach(function(childSnapshot) {
+		let key = childSnapshot.key;
+		let value = childSnapshot.val();
+		solarSystemConfig[key] = value;
+	});
+});
 
-    // Monthly accumulated building load
-    systemPerformanceData.MonthlyReadings.monthlyAccBuildingLoad += smartloggerData.totalBuildingLoad * TIME_ELAPSED;
+//**********************************************************************
+//
+// PROJECT CONFIGURATION: DIGITAL POWER METER
+//
+//**********************************************************************
 
-    // Monthly accumulated yield
-    systemPerformanceData.MonthlyReadings.monthlyAccYield += smartloggerData.totalPVacPower * TIME_ELAPSED;
+const numberOfMeters = 1;
+const numberOfInverters = 19;
 
-    // Monthly accumulated Irradiance
-    systemPerformanceData.MonthlyReadings.monthlyAccIrradiance += smartloggerData.IRRsensor * TIME_ELAPSED;
-    
-    // Timestamp monthly readings
-    systemPerformanceData.MonthlyReadings.time = time;
+//**********************************************************************
+//
+// MAIN FUNCTION
+//
+//**********************************************************************
 
-    // Monthly performance ratio
-    // NEED MORE INFO
-    // systemPerformanceData.monthlyPerformanceRatio = (systemPerformanceData.monthlyAccYield / 6) / (panelEfficiency * areaOfArray * (systemPerformanceData.monthlyAccIrradiance/6000));
+const main = async () => {
+	try {
+		let allMeterParameters = await getMeters.getEnergyParameters(energyMeter, numberOfMeters);
+		let weatherStationObject = await getSolar.getWeatherData(smartlogger);
+		let allInverterParameters = await getSolar.getInverters(smartlogger, numberOfInverters);
+		let allPVParameters = await getSolar.getSmartlogger(smartlogger);
+		let limitPVOutput = await solarOutputControl.adjustSolarOutput(smartlogger, allMeterParameters.Meter1.intakeTNB, allPVParameters.SmartLogger);
+		let systemPerformance = await performanceData.performanceParameters(allMeterParameters.Meter1, allPVParameters.SmartLogger, solarSystemConfig);
+		//console.log("IntakeTNB:", allMeterParameters.Meter1.intakeTNB);
+		console.log("systemPerformance:", systemPerformance);
+		manageDatabase.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters, systemPerformance);
+	} catch (error) {
+		console.log(error.message);
+	} finally {
+		await delay(60000);
+		console.log('***** ITERATION COMPLETE *****');
+		main();
+	}
+};
 
-    // Monthly energy savings
-    // NEED TARIFF INFO
-    // systemPerformanceData.monthlyEnergySavings = systemPerformanceData.monthlyAccYield * ENERGY_TARIFF;
+//**********************************************************************
+//
+// DELAY
+//
+//**********************************************************************
 
-    return systemPerformanceData;
-}
+const delay = microSecond => new Promise(resolve => setTimeout(resolve, microSecond));
 
-module.exports.performanceParameters = performanceParameters;
+delay(20000).then(() => {
+	console.log("Start app.js")
+	main();
+});
