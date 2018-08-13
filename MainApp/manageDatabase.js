@@ -37,7 +37,10 @@ const CUSTOMER_NAME = 'ThongGuanLot48';
 // 
 //**********************************************************************
 
-var pushKey = null;
+var pushKeyDaily = null;
+var pushKeyWeekly = null;
+var pushKeyMonthly = null;
+var pushKeyTotal = null;
 
 //**********************************************************************
 //
@@ -49,8 +52,26 @@ const manageData = (parentDatabase, connectionStatus, baselineControl, meterData
 	// Set current status for the system
 	meterCurrentStatus(parentDatabase, meterData);
 	solarCurrentStatus(parentDatabase, solarData);
+	
+	let minute = new Date().getMinutes();
+    let hour = new Date().getHours();
 
 	// Log system data every 10 minutes
+	if (((minute % 10) === 0) && (baselineControl === true)) {
+		counter--;
+		let meterLogPath = "/PowerMeter/" + CUSTOMER_NAME + "/Baseline/";
+		pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
+	} else {
+		if (((minute % 10) === 0) && (baselineControl === false)) {
+			counter--;
+			let meterLogPath = "/PowerMeter/" + CUSTOMER_NAME + "/Actual/";
+			let solarLogPath = "/SolarSystem/" + CUSTOMER_NAME + "/Datalog/";
+			pushMeterData(parentDatabase, connectionStatus, meterLogPath, meterData);
+			pushSolarData(parentDatabase, connectionStatus, solarLogPath, solarData);
+			pushSystemPerformance(parentDatabase, connectionStatus, systemPerformance, hour, minute);
+		}
+	} 
+	/*
 	if ((counter === 10) && (baselineControl === true)) {
 		counter--;
 		let meterLogPath = "/PowerMeter/" + CUSTOMER_NAME + "/Baseline/";
@@ -71,6 +92,7 @@ const manageData = (parentDatabase, connectionStatus, baselineControl, meterData
 			counter--
 		);
 	}
+	*/ 
 	// pushSystemPerformance(parentDatabase, connectionStatus, systemPerformance);
 }
 
@@ -177,29 +199,106 @@ const pushSolarData = (parentDatabase, connectionStatus, solarLogPath, solarData
 // PUSH SYSTEM PERFORMANCE DATA TO FIREBASE
 //
 //**********************************************************************
-
-const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerformance) => {
-	let minute = new Date().getMinutes();
-    let hour = new Date().getHours();
+/*
+const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerformance, hour, minute) => {
+	// let minute = new Date().getMinutes();
+    // let hour = new Date().getHours();
     
     var solarLogPath = "/SolarSystem/" + CUSTOMER_NAME + "/Datalog/DailyReadings";
     let dailyReadingsRef = parentDatabase.ref(solarLogPath);
 	let uniqueKey = dailyReadingsRef.push();
-    
+	
 	if (connectionStatus === true) {
-		if (((minute === 0) && (hour === 0)) || (pushKey === null)) {
+		if ((minute === 0) && (hour === 1)) {
 			pushKey = uniqueKey;
 			pushKey.set(systemPerformance);
 		} else {
-			pushKey.set(systemPerformance);
+			if (pushKey === null) {
+				pushKey = uniqueKey;
+				pushKey.set(systemPerformance);
+			} else {
+				pushKey.set(systemPerformance);
+			}
 		}
-	} else {
-			let dailyReadingRef = parentDatabase.ref(solarLogPath + "DailyReadings");
-			let uniqueKey = dailyReadingRef.push();
-			localDatabase[uniqueKey.key] = systemPerformance;
-			uniqueKey.set(systemPerformance[key]);
-			let offlineData = JSON.stringify(localDatabase, null, 2);
-			jsonFile.writeFileSync("offlineData.JSON", offlineData);
+	}
+*/
+//	AMAR
+const pushSystemPerformance = (parentDatabase, connectionStatus, systemPerformance, hour, minute) => {
+	let day = new Date().getDay();
+	let date = new Date().getDate();
+
+	var solarLogPath = "/SolarSystem/" + CUSTOMER_NAME + "/Datalog/";
+
+	let dailyReadingsRef = parentDatabase.ref(solarLogPath + "DailyReadings");
+	let totalReadingsRef = parentDatabase.ref(solarLogPath + "TotalReadings");
+	let weeklyReadingsRef = parentDatabase.ref(solarLogPath + "WeeklyReadings");
+	let monthlyReadingsRef = parentDatabase.ref(solarLogPath + "MonthlyReadings");
+
+	let uniqueKeyDaily = dailyReadingsRef.push();
+	let uniqueKeyWeekly = weeklyReadingsRef.push();
+	let uniqueKeyMonthly = monthlyReadingsRef.push();
+	let uniqueKeyTotal = totalReadingsRef.push();
+
+	if (connectionStatus === true) {			
+		for (const key of Object.keys(systemPerformance)) {
+			if (key.indexOf("DailyReadings") >= 0) {
+				//if ((minute === 0) && (hour === 1)) {	
+				// if ((minute === 50) && (hour === 23)) {
+				if ((minute === 0) && (hour === 0)) {
+					pushKeyDaily = uniqueKeyDaily;
+					pushKeyDaily.set(systemPerformance.DailyReadings);
+				} else {
+					if (pushKeyDaily === null) {
+						pushKeyDaily = uniqueKeyDaily;
+						pushKeyDaily.set(systemPerformance.DailyReadings);
+					} else {
+						pushKeyDaily.set(systemPerformance.DailyReadings);
+					}
+				}
+
+			} else if (key.indexOf("TotalReadings") >= 0) {
+				//pushKeyTotal = uniqueKeyTotal;
+				//pushKeyTotal.set(systemPerformance.TotalReadings);
+				if (pushKeyTotal === null) {
+					pushKeyTotal = uniqueKeyTotal;
+					pushKeyTotal.set(systemPerformance.TotalReadings);
+				} else {
+					pushKeyTotal.set(systemPerformance.TotalReadings);
+				}
+
+			} else if (key.indexOf("WeeklyReadings") >= 0) {
+				//if ((minute === 0) && (hour === 1) && (day === 0)) {
+				// if ((minute === 50) && (hour === 23) && (day === 0)) {
+				if ((minute === 0) && (hour === 0) && (day === 0)) {
+					pushKeyWeekly = uniqueKeyWeekly;
+					pushKeyWeekly.set(systemPerformance.WeeklyReadings);
+				} else {
+					if (pushKeyWeekly === null) {
+						pushKeyWeekly = uniqueKeyWeekly;
+						pushKeyWeekly.set(systemPerformance.WeeklyReadings);
+					} else {
+						pushKeyWeekly.set(systemPerformance.WeeklyReadings);
+					}
+				}
+				
+			} else if (key.indexOf("MonthlyReadings") >= 0) {
+				//if ((minute === 0) && (hour === 1) && (date === 1)) {
+				// if ((minute === 0) && (hour === 0) && (date === 1)) {
+				if ((minute === 0) && (hour === 0) && (date === 1)) {
+					pushKeyMonthly = uniqueKeyMonthly;
+					pushKeyMonthly.set(systemPerformance.MonthlyReadings);
+				} else {
+					if (pushKeyMonthly === null) {
+						pushKeyMonthly = uniqueKeyMonthly;
+						pushKeyMonthly.set(systemPerformance.MonthlyReadings);
+					} else {
+						pushKeyMonthly.set(systemPerformance.MonthlyReadings);
+					}
+				}
+			} else {
+				console.log("invalid systemPerformance");
+			}
+		}	
 	}
 }
 
