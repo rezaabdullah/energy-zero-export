@@ -35,14 +35,6 @@ const activePowerRegister_R = 40525;
 
 //**********************************************************************
 //
-// GAIN FACTOR AS DESCRIBED BY THE SMARTLOGGER USER MANUAL
-//
-//**********************************************************************
-
-const GAIN_FACTOR = 10;
-
-//**********************************************************************
-//
 // INVERTER INFORMATION
 //
 //**********************************************************************
@@ -50,6 +42,9 @@ const GAIN_FACTOR = 10;
 // !!! ONLY THONG GUAN LOT48
 var inverterIdList = [13, 15, 18, 20, 26, 27, 25, 22, 14, 17, 30, 19, 28, 24,
     23, 21, 11, 12, 16];
+
+// Register (R) to read inverter DC power
+const dcPowerRegister_R = 32294;
 
 // Register (R) to read inverter AC power
 const acPowerRegister_R = 32290;
@@ -76,10 +71,10 @@ const getWeatherData = async (smartlogger) => {
 		await smartlogger.setID(weatherStationId);
 		await smartlogger.setTimeout(1000);
 		let weatherData = await smartlogger.readHoldingRegisters(weatherStationRegister_R, 5);
-		let windSpeed = weatherData.data[1] / GAIN_FACTOR;
-		let moduleTemp = weatherData.data[2] / GAIN_FACTOR;
-		let ambientTemp = weatherData.data[3] / GAIN_FACTOR;
-		let IRRsensor = weatherData.data[4] / GAIN_FACTOR;
+		let windSpeed = weatherData.data[1] / 10;
+		let moduleTemp = weatherData.data[2] / 10;
+		let ambientTemp = weatherData.data[3] / 10;
+		let IRRsensor = weatherData.data[4] / 10;
 		PVSystemParameters["SmartLogger"] = {
 			ambientTemp,
 			windSpeed,
@@ -124,18 +119,18 @@ const getEachInverter = async (smartlogger, inverterNumber) => {
         inverterACpower = inverterPower.buffer.readUInt32BE(0) / 1000;
         inverterDCpower = inverterPower.buffer.readUInt32BE(8) / 1000;
         let pvStringParameter = await smartlogger.readHoldingRegisters(dcParametersRegister_R, 12);
-        inverterPV1voltage = pvStringParameter.data[0] / GAIN_FACTOR;
-        inverterPV1current = pvStringParameter.data[1] / GAIN_FACTOR;
-        inverterPV2voltage = pvStringParameter.data[2] / GAIN_FACTOR;
-        inverterPV2current = pvStringParameter.data[3] / GAIN_FACTOR;
-        inverterPV3voltage = pvStringParameter.data[4] / GAIN_FACTOR;
-        inverterPV3current = pvStringParameter.data[5] / GAIN_FACTOR;
-        inverterPV4voltage = pvStringParameter.data[6] / GAIN_FACTOR;
-        inverterPV4current = pvStringParameter.data[7] / GAIN_FACTOR;
-        inverterPV5voltage = pvStringParameter.data[8] / GAIN_FACTOR;
-        inverterPV5current = pvStringParameter.data[9] / GAIN_FACTOR;
-        inverterPV6voltage = pvStringParameter.data[10] / GAIN_FACTOR;
-        inverterPV6current = pvStringParameter.data[11] / GAIN_FACTOR;
+        inverterPV1voltage = pvStringParameter.data[0] / 10;
+        inverterPV1current = pvStringParameter.data[1] / 10;
+        inverterPV2voltage = pvStringParameter.data[2] / 10;
+        inverterPV2current = pvStringParameter.data[3] / 10;
+        inverterPV3voltage = pvStringParameter.data[4] / 10;
+        inverterPV3current = pvStringParameter.data[5] / 10;
+        inverterPV4voltage = pvStringParameter.data[6] / 10;
+        inverterPV4current = pvStringParameter.data[7] / 10;
+        inverterPV5voltage = pvStringParameter.data[8] / 10;
+        inverterPV5current = pvStringParameter.data[9] / 10;
+        inverterPV6voltage = pvStringParameter.data[10] / 10;
+        inverterPV6current = pvStringParameter.data[11] / 10;
 		
 		PVSystemParameters[inverterId] = {
 			inverterACpower, inverterDCpower, 
