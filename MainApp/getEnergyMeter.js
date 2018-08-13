@@ -24,9 +24,9 @@ var EnergyParameters = new Object;
 //**********************************************************************
 
 // First address of the register block
-const holdingRegister_R = 768;
+const holdingRegister_R = 4000;
 // Total Number of Register to read from the register block		
-const totalNumberOfRegister = 90;
+const totalNumberOfRegister = 14;
 
 //**********************************************************************
 //
@@ -61,8 +61,8 @@ const getEachMeter = async (energyMeter, slaveId) => {
 		let energyParameters = await energyMeter.readHoldingRegisters(holdingRegister_R, totalNumberOfRegister);
 		
 		// Power and Energy
-        activeEnergy = energyParameters.buffer.readUInt32BE(176);
-        intakeTNB = energyParameters.buffer.readUInt32BE(44) / 1000;
+        activeEnergy = energyParameters.buffer.readUInt32BE(4);
+        intakeTNB = energyParameters.buffer.readUInt32BE(24) / 1000;
         
 		EnergyParameters[meterId] = {
 			activeEnergy,
