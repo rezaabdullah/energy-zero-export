@@ -83,12 +83,23 @@ smartlogger.connectTCP("10.10.0.61", {port: 502}, function(error, data) {
 //**********************************************************************
 
 var config = {
- 	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
-     authDomain: "source-57d08.firebaseapp.com",
-     databaseURL: "https://source-57d08.firebaseio.com",
-     projectId: "source-57d08",
-     storageBucket: "source-57d08.appspot.com",
+	apiKey: "AIzaSyBpzfNgXNeKz8X0CQBG29W3R8CsXVh8pwI",
+	authDomain: "source-57d08.firebaseapp.com",
+	databaseURL: "https://source-57d08.firebaseio.com",
+	projectId: "source-57d08",
+	storageBucket: "source-57d08.appspot.com",
 };
+
+/*
+var config = {
+	apiKey: "AIzaSyB-6YYD6W9-yN-E4wvFNpxtEL6IHX9nVuQ",
+	authDomain: "prototype-test-development.firebaseapp.com",
+	databaseURL: "https://prototype-test-development.firebaseio.com",
+	projectId: "prototype-test-development",
+	storageBucket: "prototype-test-development.appspot.com"
+};
+*/ 
+
 firebase.initializeApp(config);
 var projectDatabase = firebase.database();
 
@@ -161,8 +172,8 @@ const main = async () => {
 		let allPVParameters = await getSolar.getSmartlogger(smartlogger);
 		let limitPVOutput = await solarOutputControl.adjustSolarOutput(smartlogger, allMeterParameters.Meter1.intakeTNB, allPVParameters.SmartLogger);
 		let systemPerformance = await performanceData.performanceParameters(allMeterParameters.Meter1, allPVParameters.SmartLogger, solarSystemConfig);
-		//console.log("IntakeTNB:", allMeterParameters.Meter1.intakeTNB);
-		console.log("systemPerformance:", systemPerformance);
+		console.log("IntakeTNBPower:", allMeterParameters.Meter1.intakeTNB);
+		console.log("dailyMaxDemand:", systemPerformance.DailyReadings.dailyMaxDemand);
 		manageDatabase.manageData(projectDatabase, connectionStatus, baselineControl, allMeterParameters, allPVParameters, systemPerformance);
 	} catch (error) {
 		console.log(error.message);
@@ -181,7 +192,7 @@ const main = async () => {
 
 const delay = microSecond => new Promise(resolve => setTimeout(resolve, microSecond));
 
-delay(30000).then(() => {
+delay(20000).then(() => {
 	console.log("Start app.js")
 	main();
 });
