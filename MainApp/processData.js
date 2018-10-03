@@ -105,7 +105,6 @@ const performanceParameters = async (meterData, smartloggerData, solarSystemConf
     if ((minute === 0) && (hour === 0) && (date === 1)) {
         // Reset all the properties every month
         systemPerformanceData.DailyReadings.dailyMaxAmbientTemp = null;
-        systemPerformanceData.DailyReadings.dailyMaxAmbientTemp = null;
         systemPerformanceData.DailyReadings.dailyMinAmbientTemp = null;
         systemPerformanceData.DailyReadings.dailyMaxSolarTemp = null;
         systemPerformanceData.DailyReadings.dailyMaxIrradiance = null;
@@ -120,7 +119,6 @@ const performanceParameters = async (meterData, smartloggerData, solarSystemConf
         systemPerformanceData.DailyReadings.dailyTNBintake = null;
         systemPerformanceData.DailyReadings.dailyAvgSolarOutput = null;
         systemPerformanceData.DailyReadings.dailyAvgIntake = null;
-        systemPerformanceData.DailyReadings.dailyMinAmbientTempt = null;
         systemPerformanceData.DailyReadings.dailyAvgBuildingLoad = null;
         systemPerformanceData.DailyReadings.dailyEnergySavings = null;
         systemPerformanceData.DailyReadings.dailyPerformanceRatio = null;
