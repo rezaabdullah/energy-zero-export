@@ -1,7 +1,11 @@
-# NodeJS App for Zero Export
+# +TRACE NodeJS App for Data transferring, Zero Export and Notification System
 
 ###### Copyright (c) 2017-2018 Plus NRG Systems Sdn. Bhd.
+This script has been forked and updated to reflect changes on pushing data to AWS instead of Google Firebase. 
+
 The sript should be used as a template for future NodeJS apps. Pls refer to individual modules for more information. To ensure quality, any update or modification on any modules should be verified and approved before deployment to project sites.
+
+
 
 ### *Coding Convention*
 1. Variables    : `camelCase`
