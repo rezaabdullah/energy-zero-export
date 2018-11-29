@@ -9,6 +9,21 @@
 //
 //**********************************************************************
 
+//Define payload
+const payload = require("./payload.js").payload;
+
+//Define date
+var dat = new Date();
+//**********************************************************************
+//
+// TEMPORARY PLACE HOLDER TO CALCULATE MAXIMUM DEMAND
+// 
+//**********************************************************************
+
+//let maxDemand = new Object;
+let maxDemand = null;																																																																																																								
+let hour = new Date().getHours();
+
 //**********************************************************************
 //
 // DEFINE ENERGY METER OBJECTS
@@ -28,6 +43,8 @@ const holdingRegister_R = 4000;
 // Total Number of Register to read from the register block		
 const totalNumberOfRegister = 14;
 
+var meterIdList = [1, 2, 3];
+
 //**********************************************************************
 //
 // QUERY ALL THE METERS
@@ -37,7 +54,7 @@ const totalNumberOfRegister = 14;
 const getEnergyParameters = async (energyMeter, totalNumberOfMeters) => {
 	// console.log("Inside getMeters");
 	try {
-		for (let meterNumber = 1; meterNumber <= totalNumberOfMeters; meterNumber++) {
+		for (let meterNumber = 0; meterNumber <= totalNumberOfMeters; meterNumber++) {
 			await getEachMeter(energyMeter, meterNumber);
 		}
 	} catch (error) {
@@ -53,24 +70,42 @@ const getEnergyParameters = async (energyMeter, totalNumberOfMeters) => {
 //
 //**********************************************************************
 
+var energyArray = [];
 const getEachMeter = async (energyMeter, slaveId) => {
 	let meterId = "Meter" + slaveId;
 	try {
-		await energyMeter.setID(slaveId);
+		await energyMeter.setID(meterIdList[slaveId]);
 		await energyMeter.setTimeout(1000);
 		let energyParameters = await energyMeter.readHoldingRegisters(holdingRegister_R, totalNumberOfRegister);
 		
 		// Power and Energy
         activeEnergy = energyParameters.buffer.readUInt32BE(4);
-        intakeTNB = energyParameters.buffer.readUInt32BE(24) / 1000;
-        
+		intakeTNB = energyParameters.buffer.readUInt32BE(24) / 1000;
+
+		// Daily Max Demand
+		if (energyArray.length === 30 ) {
+			energyArray.shift();
+			energyArray.push(activeEnergy);
+			maxDemand = ( energyArray[29] - energyArray[0] ) / 0.5;
+		} else {
+			energyArray.push(activeEnergy);
+			//console.log(energyArray);
+		}
+
+       	payload.powerMeter[slaveId].updatedAt = dat;
+		payload.powerMeter[slaveId].activeEnergy = activeEnergy;
+		payload.powerMeter[slaveId].activePower = intakeTNB;
+		payload.powerMeter[slaveId].maxDemand = maxDemand;
+
 		EnergyParameters[meterId] = {
 			activeEnergy,
 			intakeTNB,
+			maxDemand,
 			time: Date.now(),
 			month: new Date().getMonth() + 1,
 			year: new Date().getFullYear()
 		};
+
 	} catch (error) {
 		EnergyParameters[meterId] = {
 			error: error.message,
